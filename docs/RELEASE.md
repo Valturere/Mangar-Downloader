@@ -10,6 +10,6 @@ PUBLIC source/release repository: `Valturere/Mangar-Downloader`. Private develop
 
 `-ReleaseCandidate` готовит тот же app VERSION 1.0.0 и публикует отдельный prerelease `v1.0.0-rc.1` без latest. Требуются базовые installer gates и реальный upgrade. RC имеет публичный installer URL для CWS reviewer; anonymous updater отклоняет prerelease и продолжает использовать последний stable update-test. Финальный `v1.0.0` публикуется только после final gates, с теми же проверенными bytes; если код меняется, artifact требует новой проверки.
 
-Installer пока unsigned; поддельный сертификат не используется. Chrome Web Store item: `paimennadokhgjdpgilfcebameolopbm`, PUBLIC. Расширение ставится из Store, archival ZIP не является пользовательским способом установки. Submit for review выполняет владелец только после явного согласования готового installer/testing package.
+Installer пока unsigned; поддельный сертификат не используется. Chrome Web Store item: `paimennadokhgjdpgilfcebameolopbm`, PUBLIC. Расширение ставится из Store, archival ZIP не является пользовательским способом установки. Перед Submit for review проверить готовый companion installer и testing instructions.
 
-Перед release выполнить `.codex/skills/release-windows/SKILL.md` и применимые checks из `scripts/verify.ps1`. Full matrix не повторять без изменения или новой причины.
+Перед release выполнить применимые [проверки](VERIFICATION.md) и actual installer acceptance. Full matrix не повторять без изменения или новой причины.

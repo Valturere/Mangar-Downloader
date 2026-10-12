@@ -2,7 +2,7 @@
 
 Companion RC1 installer (app version 1.0.0): https://github.com/Valturere/Mangar-Downloader/releases/download/v1.0.0-rc.1/YTDLP-GUI-Mangar-Setup-1.0.0-win-x64.exe . [Release/контрольные суммы](https://github.com/Valturere/Mangar-Downloader/releases/tag/v1.0.0-rc.1). GitHub account/PAT не нужны. RC не является финальным accepted v1.0.0; installer пока unsigned.
 
-Item paimennadokhgjdpgilfcebameolopbm, draft1.0.1, PUBLIC. Формы сохранены владельцем. Submit — только после отдельного согласования владельца.
+Item paimennadokhgjdpgilfcebameolopbm, draft1.0.1, PUBLIC.
 
 Шаги проверки:
 
@@ -16,7 +16,7 @@ Item paimennadokhgjdpgilfcebameolopbm, draft1.0.1, PUBLIC. Формы сохра
 
 DRM не поддерживается. Protected media зависит от разрешений/сессии. Remote executable code отсутствует. Policy: https://valturere.github.io/Mangar-Privacy/
 
-Submit требует явного согласования владельца. Actual CWS extension → Native Messaging проверяется после появления возможности установки из CWS; CLI fixture не подменяет его. Clean Windows 10/11 и final regression остаются gates финального app release; проверка на текущей Windows не объявляется чистой VM.
+Actual CWS extension → Native Messaging проверяется после появления возможности установки из CWS; CLI fixture не подменяет его. Для финального выпуска нужны clean Windows 10/11 и integrated regression; isolated data profile не считается чистой VM.
 
 ## Текст для Access → Testing instructions
 

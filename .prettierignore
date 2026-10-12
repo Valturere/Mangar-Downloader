@@ -6,7 +6,5 @@ frontend/wailsjs/
 frontend/package-lock.json
 build/
 docs/
-AGENTS.md
-.codex/
 go.mod
 go.sum

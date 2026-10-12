@@ -1,11 +1,10 @@
-Mangar Downloader — существующий черновик Chrome Web Store
+Mangar Downloader — шаблон Listing/Privacy для Chrome Web Store
 Item ID: paimennadokhgjdpgilfcebameolopbm
-Dashboard: https://chrome.google.com/webstore/devconsole/0120adc8-556a-4182-b5f7-6d4a9fa43a76/paimennadokhgjdpgilfcebameolopbm/edit
 
 1. ПАКЕТ
 Откройте существующий Mangar → Пакет → Загрузить новый пакет (Upload new package).
 Выберите Mangar-Browser-Extension-1.0.1.zip из этой папки.
-Новый item не создавать. В ZIP версия 1.0.1: Chrome требует увеличения версии при замене уже загруженного 1.0.0, даже в черновике. Версия приложения остаётся 0.9.0; installer ещё готовится.
+Новый item не создавать. В ZIP версия 1.0.1: Chrome требует увеличения версии при замене уже загруженного 1.0.0, даже в черновике. Companion installer и testing instructions описаны в CWS_REVIEWER_INSTRUCTIONS.md.
 
 2. ОПИСАНИЕ ПРОДУКТА
 Название: Mangar Downloader
@@ -18,7 +17,7 @@ Mangar Downloader связывает Chrome с локальным Windows-при
 
 Передача выполняется только по вашему нажатию. Для выбранного медиапотока приложение может получить адрес, разрешённые заголовки и cookies конкретного запроса. Контекст используется для выбранного скачивания и передаётся локально приложению; серверу разработчика данные не отправляются. Найденные потоки хранятся временно и очищаются по истечении срока, навигации и закрытии вкладки. DRM не поддерживается; доступность зависит от источника и сети.
 
-Это Private публикация для разрешённых Google trusted tester accounts. Установка и последующие обновления расширения выполняются через Chrome Web Store.
+Расширение и companion приложение являются публичным продуктом. Установка и последующие обновления расширения выполняются через Chrome Web Store.
 
 Изображения из этой папки:
 Store icon: icon-128.png
@@ -61,10 +60,8 @@ Host permissions — http://*/* и https://*/*:
 Сохраните раздел.
 
 4. РАСПРОСТРАНЕНИЕ
-Visibility: Private / Частное. Не Public и не Unlisted.
-Account → Trusted testers: добавьте Google email аккаунта, с которого будете устанавливать и проверять расширение, сохраните список. Если Dashboard предлагает «доверенные тестировщики» как аудиторию Private — выберите её. Используйте свой действительный Google account, не вымышленный адрес. Сохраните раздел Distribution.
-Verified CRX Uploads / Загрузка подтверждённых CRX: не включать.
+Visibility: Public / Общедоступно. Бесплатно, adult content выключен.
+Verified CRX Uploads выключен; собственный CRX/private signing key не требуется.
 
-5. ОБЯЗАТЕЛЬНАЯ ОСТАНОВКА
-НЕ нажимайте Submit for review / Отправить на проверку. НЕ публикуйте item.
-Companion installer и инструкции для reviewer ещё не готовы. После сохранения разделов Описание продукта, Конфиденциальность и Распространение сообщите Codex, что они заполнены и сохранены; если есть ошибки валидации — передайте их текст.
+5. TESTING INSTRUCTIONS
+Вставить текст из docs/CWS_REVIEWER_INSTRUCTIONS.md в Access → Testing instructions; login/password не нужны. Использовать проверенный публичный companion installer URL и actual media example. Перед публикацией проверить package identity/version, permissions/privacy и installer/native integration.

@@ -175,7 +175,7 @@ Final output записывается в выбранную пользовате
 
 Mouse adapter subclass-ит только собственный `SystrayClass` HWND через SetWindowLongPtrW/CallWindowProcW: WM_USER+1/WM_LBUTTONUP вызывает Open асинхронно и подавляет menu; ПКМ и TaskbarCreated делегируются библиотеке. Перед WM_CLOSE/WM_DESTROY/WM_NCDESTROY original WndProc восстанавливается на owner thread. Один trampoline и idempotent installation/Stop; отказ enhancement сохраняет menu. Module cache не изменяется.
 
-`download.Request.HTTPContext` → validation/immutable copy → отдельные `--add-headers` args. Context не входит в Job/Snapshot/лог значений и сохраняется в logical request при Retry. Registry provider profiles отделён от внешнего context, matcher exact/subdomain + optional path suffix; оба проходят общий validator. Реестр пока пуст: стабильный VK manifest/media/MP4 не доказан. Будущая extension передаёт URL/context в тот же Start; credentials/session требуют отдельного расширения этой границы, новый downloader не нужен. Подробности — DOWNLOAD_ENGINE.md и STAGE_7_1_VERIFICATION.md.
+`download.Request.HTTPContext` → validation/immutable copy → отдельные `--add-headers` args. Context не входит в Job/Snapshot/лог значений и сохраняется в logical request при Retry. Registry provider profiles отделён от внешнего context, matcher exact/subdomain + optional path suffix; оба проходят общий validator. Реестр пока пуст: стабильный VK manifest/media/MP4 не доказан. Будущая extension передаёт URL/context в тот же Start; credentials/session требуют отдельного расширения этой границы, новый downloader не нужен. Подробности — DOWNLOAD_ENGINE.md и VERIFICATION.md.
 
 Native adapter использует documented Win32 subclass собственного HWND для session messages и native TaskDialog на потоке owner-window. PostMessage ставит диалог после уже запрошенных Wails window callbacks; restore и confirmation выполняются последовательно. Queue/tools snapshots перечитываются по window:shown/focus. Watchdog каждые 500 мс возвращает скрытое окно при исчезновении зарегистрированного tray.
 
@@ -202,7 +202,7 @@ UI получает русское безопасное сообщение + err
 
 ## 9. Архитектурная проверка до написания кода
 
-На Этапе 0 Codex должен подтвердить:
+При изменении Windows shell проверить:
 - Wails v2 template и Windows build работают;
 - выбранный tray-подход совместим с Wails v2;
 - frameless titlebar не ломает drag/min/max/close;
@@ -218,7 +218,7 @@ TXT читает core internal/download/batch.go, Wails adapter передаёт
 
 Manifest schema 1 и корни хранения сохранены. Runtime exe/hashes/version commands остаются обязательными, известные notice/license paths имеют вычисляемый auxiliaryRepair. Missing/changed auxiliary не блокирует Acquire, но требует явного восстановления; startup local-only. Repair создаёт новую immutable installation и сохраняет rollback/leases.
 
-TitleBar читает реальный Wails WindowIsMaximised (Windows IsZoomed), обновляется на resize/focus, после toggle и раз в секунду; UI не инвертирует состояние самостоятельно. Единственный источник verification policy — AGENTS.md §14, verify-change skill ссылается на него. Real tests копируют текущие managed tools read-only в t.TempDir; Detect/cleanup работают только на копии. Native smokes по умолчанию используют отдельный LOCALAPPDATA. Протокол — STAGE_6_VERIFICATION.md.
+TitleBar читает реальный Wails WindowIsMaximised (Windows IsZoomed), обновляется на resize/focus, после toggle и раз в секунду; UI не инвертирует состояние самостоятельно. Правила проверки описаны в [VERIFICATION.md](VERIFICATION.md). Real tests копируют текущие managed tools read-only в t.TempDir; Detect/cleanup работают только на копии. Native smokes по умолчанию используют отдельный LOCALAPPDATA. md.
 
 ## Дополнение Stage 7.2: два входа, один engine
 
@@ -226,16 +226,16 @@ Standalone: App → snapshot `browser_cookie_mode` → обычный Request �
 
 Browser-assisted: optional MV3 worker → Native Messaging helper → current-user named pipe → приватный backend capture store → прежний Request/Manager. Pipe/mutex имеют SID ACL; Win32 mutex обеспечивает единственный экземпляр для профиля. Закрытое приложение запускается sibling helper; tray capture с выбранной папкой не раскрывает окно. Secret DTO не пересекает Wails frontend boundary. Scheduler 3, `-N 8`, temp isolation, naming/publication и FFmpeg finalization общие.
 
-Подробности границ, TTL и dev регистрации: [BROWSER_EXTENSION_DEV.md](BROWSER_EXTENSION_DEV.md); доказательства и незакрытый VK gate: STAGE_7_2_VERIFICATION.md (внутренний протокол в private archive).
+Подробности границ, TTL и dev регистрации: [BROWSER_EXTENSION_DEV.md](BROWSER_EXTENSION_DEV.md).
 
 ## Дополнение Stage 7.3: page URL рядом с capture
 
 Popup → fresh active `chrome.tabs` URL → version=1/type=`page_url`/url → тот же helper/pipe → backend revalidation → обычный `download.Request{URL, Directory}`. `Capture`, `HTTPContext` и `BrowserContext` не создаются; standalone compatibility policy определяется Manager при admission и сохраняется при Retry. Никакой второй downloader/очередь/host не добавлен.
 
-Backend хранит pending страницы в RAM отдельно от secret captures, но использует общий порядок handoff и текущую main-screen папку. Captures имеют прежний TTL; страницы ожидают папку до admission/Exit без media TTL. Pending DTO в React — opaque ID, host, фиксированное название и тип `page`; исходный URL не входит в `browser:changed`/pending DTO. Обычный Job и metadata-derived filename используют прежнюю publication policy; её ограничения описаны в STAGE_7_3_VERIFICATION.md. Лимит pending общий (32), claim/restore сериализован `browserHandoff`, shutdown очищает обе коллекции. Page validation сохраняет политику ручной вставки: HTTP(S), без credentials, не более 16 КиБ; локальные HTTP(S) разрешены, как в текущем engine. `safeSource`/redaction сохраняются.
+Backend хранит pending страницы в RAM отдельно от secret captures, но использует общий порядок handoff и текущую main-screen папку. Captures имеют прежний TTL; страницы ожидают папку до admission/Exit без media TTL. Pending DTO в React — opaque ID, host, фиксированное название и тип `page`; исходный URL не входит в `browser:changed`/pending DTO. Обычный Job и metadata-derived filename используют прежнюю publication policy; её ограничения описаны в DOWNLOAD_ENGINE.md. Лимит pending общий (32), claim/restore сериализован `browserHandoff`, shutdown очищает обе коллекции. Page validation сохраняет политику ручной вставки: HTTP(S), без credentials, не более 16 КиБ; локальные HTTP(S) разрешены, как в текущем engine. `safeSource`/redaction сохраняются.
 
 ## Stage 8
 
 N8 задаёт общий builder, остальные engine boundaries сохранены. Shared internal/logging redactor используется tools/download. Download temp ownership handle и startup retention не касаются tools leases; admission после cleanup. OpenLogsFolder принимает zero parameters, path вычисляет backend. Windows helpers используют native Unicode shell/COM APIs.
 
-Bindings-tag entry point main_bindings.go вызывает только Wails binding generation: нет mutex/IPC/production startup. Extension presentation modules работают с безопасными summaries; новые private passive/redirect facts не входят в прежний wire DTO. Подробные решения — ADR-026/027 и STAGE_8_VERIFICATION.md.
+Bindings-tag entry point main_bindings.go вызывает только Wails binding generation: нет mutex/IPC/production startup. Extension presentation modules работают с безопасными summaries; новые private passive/redirect facts не входят в прежний wire DTO. Подробные решения — ADR-026/027 и VERIFICATION.md.

@@ -29,7 +29,7 @@ foreach ($asset in $copies.Keys) {
     Copy-Item -LiteralPath (Join-Path $release "store/$asset") -Destination (Join-Path $destination $copies[$asset]) -Force
 }
 Copy-Item -LiteralPath $zipPath -Destination (Join-Path $destination $zipName) -Force
-$instructions = Get-Content -LiteralPath (Join-Path $taskRoot 'docs/CWS-ЧТО-ВСТАВИТЬ.txt') -Raw
+$instructions = Get-Content -LiteralPath (Join-Path $taskRoot 'docs/CWS_LISTING_RU.txt') -Raw
 $instructions += "`r`nПроверенный ZIP: $zipName`r`nSHA-256: $($record.sha256)`r`nSource commit: $($record.source_commit)`r`n"
-[IO.File]::WriteAllText((Join-Path $destination 'CWS-ЧТО-ВСТАВИТЬ.txt'), $instructions, [Text.UTF8Encoding]::new($true))
+[IO.File]::WriteAllText((Join-Path $destination 'CWS_LISTING_RU.txt'), $instructions, [Text.UTF8Encoding]::new($true))
 Write-Output "CWS desktop folder: $destination"

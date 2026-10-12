@@ -61,3 +61,7 @@ frontend/test-results/
 *.crx
 frontend/playwright-report/
 build/windows/installer/wails_tools.nsh
+
+# Local development instructions are not product source
+/.codex/
+/AGENTS.md

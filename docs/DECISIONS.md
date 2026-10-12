@@ -36,7 +36,7 @@
 
 **Ограничения:** это технический spike. Крестик завершает приложение, close-to-tray/settings/active-job confirmation остаются Этапом 7. Библиотека глобальна и поддерживает один lifecycle на процесс; её ошибки icon/menu часто доступны лишь через logger. Перед hide дополнительно проверяется регистрация иконки в Shell; принудительная остановка tray воспроизведена: окно остаётся открытым и показывает русскую ошибку. Explorer restart, завершение Windows session, отсутствие самого Explorer и Windows 10 здесь не проверены; для Этапа 7 нужен контроль ошибок и восстановление после изменения Shell. Повторный `OnDomReady` не создаёт второй tray.
 
-**Статус:** первоначальный spike сохранён как историческая проверка. Актуальный продуктовый lifecycle реализован в Этапе 7, см. ADR-021 и STAGE_7_VERIFICATION.md.
+**Статус:** первоначальный spike сохранён как историческая проверка. Актуальный продуктовый lifecycle реализован в Этапе 7, см. ADR-021 и VERIFICATION.md.
 
 ## ADR-006 — Windows process tree cancellation
 
@@ -52,7 +52,7 @@
 
 ## ADR-007 — Installer
 
-**Решение:** NSIS, один setup `.exe`, per-user установка без обязательного UAC; будущий app directory — `%LOCALAPPDATA%\Programs\YTDLPGUIMangar`. Данные/tools/logs/temp сохраняют пути из AGENTS.md. Полноценный installer и uninstall smoke относятся к Этапу 9.
+**Решение:** NSIS, один setup `.exe`, per-user установка без обязательного UAC; будущий app directory — `%LOCALAPPDATA%\Programs\YTDLPGUIMangar`. Данные/tools/logs/temp сохраняют стабильные пути из [INSTALLATION.md](INSTALLATION.md). Полноценный installer и uninstall smoke относятся к Этапу 9.
 
 | Вариант | Вывод для проекта |
 | --- | --- |
@@ -126,11 +126,11 @@
 
 **Diagnostics:** только tools logs ограничены тремя файлами по 2 MiB (`tools.jsonl`, `.1`, `.2`); это не определяет будущую общую rotation policy ADR-010. User errors русские, сырые version stderr/stdout сохраняются в ограниченном объёме при ошибке, URL query/fragment удаляются.
 
-**Статус:** реализовано; доказательства и ограничения — `STAGE_2_VERIFICATION.md`. Стек, очередь, settings/session persistence и release flow не меняются.
+**Статус:** реализовано; доказательства и ограничения — `VERIFICATION.md`. Стек, очередь, settings/session persistence и release flow не меняются.
 
 ## ADR-014 — MP4 без потери выбранного качества
 
-**Решение:** `bv+ba/b` без фильтра кодеков; intermediate MKV. Сначала final MP4 stream-copy; несовместимость выбранного потока подтверждает фактический muxer managed FFmpeg в header trial. Перекодировать только несовместимый stream; I/O failure не разрешает conversion. Итог проверяется managed ffprobe до публикации. Детали и реально проверенные codecs — `DOWNLOAD_ENGINE.md` и `STAGE_3_VERIFICATION.md`.
+**Решение:** `bv+ba/b` без фильтра кодеков; intermediate MKV. Сначала final MP4 stream-copy; несовместимость выбранного потока подтверждает фактический muxer managed FFmpeg в header trial. Перекодировать только несовместимый stream; I/O failure не разрешает conversion. Итог проверяется managed ffprobe до публикации. Детали и реально проверенные codecs — `DOWNLOAD_ENGINE.md` и `VERIFICATION.md`.
 
 **Статус:** принято в Этапе 3.
 
@@ -150,13 +150,13 @@
 
 **Метрики:** valid speed > 0 и ETA >= 0 удерживаются 3 секунды после последнего валидного значения, отсутствие поля не очищает сразу; phase change сбрасывает. Backend использует injectable clock, UI скрывает истёкшие значения даже при отсутствии новых событий.
 
-**Статус:** реализовано; проверки и открытая граница native UX — `STAGE_4_5_VERIFICATION.md`.
+**Статус:** реализовано; проверки и открытая граница native UX — `VERIFICATION.md`.
 
 ## ADR-017 — Generic media title и открытие результата
 
 **Решение:** deterministic conservative classifier распознаёт resolution/generic word, manifest extension, `hls:manifest` и технический media basename. Короткие настоящие названия (`1917`, `Se7en`, `Урок 1`) сохраняются. Для generic title — `Видео — <host>`, имя `Видео — <host> [<первые 8 символов logical ID>].mp4` с прежними collision suffixes. Retry сохраняет этот ID. Query/path не становятся fallback title. Kodik scraper и извлечение page context не реализуются.
 
-**Shell:** backend проверяет completed ID, абсолютный существующий regular MP4. File open — системная ассоциация через ShellExecute; папка/выделение — SHParseDisplayName + SHOpenFolderAndSelectItems, без командной строки Explorer. Ошибки русские. Проверки invalid/missing paths выполнены; успешное открытие/выделение в production UI остаётся manual gate.
+**Shell:** backend проверяет completed ID, абсолютный существующий regular MP4. File open — системная ассоциация через ShellExecute; папка/выделение — SHParseDisplayName + SHOpenFolderAndSelectItems, без командной строки Explorer. Ошибки русские. Проверки invalid/missing paths выполнены; успешное открытие/выделение проверяется в production UI.
 
 **Источник:** [Microsoft SHOpenFolderAndSelectItems](https://learn.microsoft.com/en-us/windows/win32/api/shlobj_core/nf-shlobj_core-shopenfolderandselectitems).
 
@@ -172,7 +172,7 @@ Schema 1 сохраняет hash всех файлов. Known auxiliary paths (L
 
 ## ADR-020 — Проверки по риску и Windows race
 
-Основная policy — AGENTS.md §14: baseline, targeted, justified cross-regressions, explicit full. Default verify больше не запускает UI/network/native/race автоматически; full сохраняет тяжёлый suite для milestone/release. Automated profiles isolated, production working tools не изменяются; fingerprint до/после — обязательный gate. GCC/MSYS2 только developer dependency, CGO/CC/PATH меняются внутри verify-race и восстанавливаются. Native maximize query использует Wails/IsZoomed, без оптимистической инверсии React state.
+Основная policy — [VERIFICATION.md](VERIFICATION.md): baseline, targeted, justified cross-regressions, explicit full. Default verify больше не запускает UI/network/native/race автоматически; full сохраняет тяжёлый suite для milestone/release. Automated profiles isolated, production working tools не изменяются; fingerprint до/после — обязательный gate. GCC/MSYS2 только developer dependency, CGO/CC/PATH меняются внутри verify-race и восстанавливаются. Native maximize query использует Wails/IsZoomed, без оптимистической инверсии React state.
 
 ## ADR-021 — Tray и Exit без recovery
 
@@ -180,11 +180,11 @@ Schema 1 сохраняет hash всех файлов. Known auxiliary paths (L
 
 **Координация:** lifecycle.go — одна close/Exit policy. Confirmation предшествует closing/admission/cancellation. StopIfIdle атомарно закрывает пустую/terminal-only очередь; StopAdmission после подтверждения закрывает FIFO. CleanupOnce предотвращает повторную остановку. Active завершаются через существующие Job Objects, pipes → temp/pending → leases → logs, tool operation отменяется и ожидается, tray.Stop, Wails Quit. MP4/logs/tools сохраняются, очередь после Exit исчезает намеренно. Watchdog возвращает скрытое окно при потере Shell registration.
 
-**Windows:** dialog и restore выполняются на потоке owner HWND через documented Win32 PostMessage/subclass; иначе asynchronous Wails Show может пересечься с disabled owner и вызвать WebView2 focus failure. WM_QUERYENDSESSION разрешает выход, WM_ENDSESSION(TRUE) отменяет работу без диалога и ждёт до 4 с. Обычный cleanup до 15 с + tray до 3 с. Реальный reboot/logoff не запускается на рабочей машине; native message fixture и оставшиеся ограничения указаны в STAGE_7_VERIFICATION.md. Queue persistence/recovery не реализуются.
+**Windows:** dialog и restore выполняются на потоке owner HWND через documented Win32 PostMessage/subclass; иначе asynchronous Wails Show может пересечься с disabled owner и вызвать WebView2 focus failure. WM_QUERYENDSESSION разрешает выход, WM_ENDSESSION(TRUE) отменяет работу без диалога и ждёт до 4 с. Обычный cleanup до 15 с + tray до 3 с. Реальный reboot/logoff не запускается на рабочей машине; native message fixture и оставшиеся ограничения указаны в VERIFICATION.md. Queue persistence/recovery не реализуются.
 
 **Источники:** [TASKDIALOGCONFIG](https://learn.microsoft.com/en-us/windows/win32/api/commctrl/ns-commctrl-taskdialogconfig), [WM_QUERYENDSESSION](https://learn.microsoft.com/en-us/windows/win32/shutdown/wm-queryendsession), [WM_ENDSESSION](https://learn.microsoft.com/en-us/windows/win32/shutdown/wm-endsession).
 
-**Статус:** реализация Этапа 7; доказательства — STAGE_7_VERIFICATION.md.
+**Статус:** реализация Этапа 7; доказательства — VERIFICATION.md.
 
 ## ADR-022 — Этап 7.1: close policy, mouse hook и HTTP context
 
@@ -192,12 +192,12 @@ Backend authoritative close_to_tray (default true) хранится отдель
 
 Direct media получает optional безопасный HTTPContext, будущая extension использует тот же request. Profile registry малый и deterministic (host/path); внешние headers не получают trusted provider ID и не смешиваются с provider context. CLI — только подтверждённый managed --add-headers, без shell, cookies и arbitrary args UI. HTTP failures классифицируются независимо от фазы.
 
-Production VK profile не включён: кандидаты VK/site/iframe, IPv4, browser UA и встроенный impersonation не дали устойчивого media/MP4 результата. Origin iframe однажды открыл manifest, последующие probes/full engine вернули 403; это не достаточное доказательство профиля. Автоматический fallback/retry в production не добавлен. Доказанный будущий profile применяется сразу; logical Retry сохраняет resolved request. Local protected HLS/DASH полностью подтверждают generic boundary. Проверки/ограничения — STAGE_7_1_VERIFICATION.md. Этап 8 не начат.
+Production VK profile не включён: кандидаты VK/site/iframe, IPv4, browser UA и встроенный impersonation не дали устойчивого media/MP4 результата. Origin iframe однажды открыл manifest, последующие probes/full engine вернули 403; это не достаточное доказательство профиля. Автоматический fallback/retry в production не добавлен. Доказанный будущий profile применяется сразу; logical Retry сохраняет resolved request. Local protected HLS/DASH полностью подтверждают generic boundary. Проверки/ограничения — VERIFICATION.md. Этап 8 не начат.
 
 Источники: [yt-dlp 2026.08.19 options](https://github.com/yt-dlp/yt-dlp/blob/2026.08.19/README.md), [Microsoft SetWindowLongPtrW](https://learn.microsoft.com/en-us/windows/win32/api/winuser/nf-winuser-setwindowlongptrw).
 ## ADR-023 — Stage 7.2: standalone cookies и browser-assisted replay
 
-По явному запросу пользователя добавлены оба пути совместимости; запрет cookies browser extraction без запроса из AGENTS.md не относится к этому этапу. Extension остаётся самостоятельным optional fallback. Меняются только admission/context/retry и локальная IPC boundary; download backend не дублируется. Production provider registry остаётся пустым: устойчивый provider HTTP profile не доказан.
+Добавлены оба пути совместимости: standalone native cookies и optional extension. Extension остаётся самостоятельным optional fallback. Меняются только admission/context/retry и локальная IPC boundary; download backend не дублируется. Production provider registry остаётся пустым: устойчивый provider HTTP profile не доказан.
 
 Standalone получает auto/chrome/edge/firefox/off (default auto), native `--cookies-from-browser` без profile paths UI. Первый запуск каждого execution обычный, cookies только после auth/access failure. Выбор одного браузера, до одного cookie retry и до одного impersonation retry после 403. Cookies access/decryption ошибки не считаются доказательством доступности Chromium cookies. Values/DB paths не хранятся в settings и логах.
 
@@ -209,17 +209,17 @@ Stage 7.2 не полностью принят: локальные HLS/DASH, Chr
 
 ### Уточнение Stage 7.2.1
 
-Native N32/16/8/4/2/1 и один controlled FFmpeg HLS на свежих пользовательских captures не дали VK MP4. Safe N не доказано; generic production HLS retry/classifier не вводится без рабочей стратегии. Global N32 и текущая architecture остаются прежними. Diagnostic guard после серии fragment403/429 применяется только в opt-in test tooling. Private cookies через FFmpeg child argv недопустимы; synthetic propagation fixture не отменяет privacy boundary. Stage7.2/7.2.1 остаются открытыми, Stage8/9 не начаты. Доказательства — STAGE_7_2_1_VERIFICATION.md.
+Native N32/16/8/4/2/1 и один controlled FFmpeg HLS на свежих пользовательских captures не дали VK MP4. Safe N не доказано; generic production HLS retry/classifier не вводится без рабочей стратегии. Global N32 и текущая architecture остаются прежними. Diagnostic guard после серии fragment403/429 применяется только в opt-in test tooling. Private cookies через FFmpeg child argv недопустимы; synthetic propagation fixture не отменяет privacy boundary. Stage7.2/7.2.1 остаются открытыми, Stage8/9 не начаты. Доказательства — VERIFICATION.md.
 
 ### Уточнение Stage 7.2.2
 
-Fragment parity tool использует отдельный opt-in host, не production IPC/очередь/logs. Public cycle — один Go fragment GET и до двух browser-observed manifest GET, без retry/follow. Managed replay loopback-only до строгого pre-send redirect guard; cancellation по traffic недостаточна. MV3 exposed headers не объявляются wire parity. Production allowlist/architecture не расширяются; сломанный playback остановил real cycle, root cause остаётся открытым. См. STAGE_7_2_2_VERIFICATION.md (внутренний протокол в private archive).
+Fragment parity tool использует отдельный opt-in host, не production IPC/очередь/logs. Public cycle — один Go fragment GET и до двух browser-observed manifest GET, без retry/follow. Managed replay loopback-only до строгого pre-send redirect guard; cancellation по traffic недостаточна. MV3 exposed headers не объявляются wire parity. Production allowlist/architecture не расширяются; сломанный playback остановил real cycle, root cause остаётся открытым. md
 
 ## ADR-024 — Stage 7.3: основное действие страницы и отдельный capture
 
 Обычные YouTube/yt-dlp-supported страницы передаются versioned `page_url` с полями version/type/url. Название вкладки опущено, metadata engine является источником title. Cookies/headers/captured URL не отправляются автоматически. Browser-assisted `media_capture` остаётся рядом и выбирается явно; собственный YouTube sniffer/stream pairing и автоматический media fallback не вводятся.
 
-Используются существующие host/pipe/single-instance/папка/Manager. Pending page не истекает по media TTL; общий pending порядок и лимит 32 сохранены, хранение только RAM. Политика HTTP(S)/credentials соответствует ручной вставке, включая controlled local URLs. Retry остаётся standalone, playlists отключены. VK Stage 7.2.2 blocked/unmodified; Stage 8/9 и release не начаты. Доказательства и открытые network gates — STAGE_7_3_VERIFICATION.md (внутренний протокол в private archive).
+Используются существующие host/pipe/single-instance/папка/Manager. Pending page не истекает по media TTL; общий pending порядок и лимит 32 сохранены, хранение только RAM. Политика HTTP(S)/credentials соответствует ручной вставке, включая controlled local URLs. Retry остаётся standalone, playlists отключены. VK Stage 7.2.2 blocked/unmodified;
 
 ## ADR-025 — Stage 7.3.1: YouTube acceptance без изменения engine
 
@@ -227,7 +227,7 @@ Fragment parity tool использует отдельный opt-in host, не p
 
 **Решение:** сохранить managed stable channel, Deno/FFmpeg, N32/max3, `bv+ba/b`, MP4 remux-first и отдельный page_url. Cookies, PO provider, новая proxy UI/flags и quality fallback не нужны для доказанного working path. Системный proxy автоматически использует upstream yt-dlp; пользовательский сетевой маршрут остаётся внешним условием. Browser HTTP/3 success через router zapret не является доказательством доступности CLI HTTPS/TCP.
 
-**Статус:** YouTube gate Stage 7.3 закрыт в проверенной сетевой конфигурации. VK Stage 7.2.2 остаётся blocked; Stage 8/9 не начинаются. Generic metadata.id/query naming risk — будущий Stage 8 security polish. Протокол (внутренний протокол в private archive).
+**Статус:** YouTube gate Stage 7.3 закрыт в проверенной сетевой конфигурации. VK Stage 7.2.2 остаётся blocked; Generic metadata.id/query naming risk — будущий Stage 8 security polish.
 
 ## ADR-026 — Stage 8: консервативный default, безопасность и UX
 
@@ -245,35 +245,18 @@ Native file/folder actions сохраняют ShellExecuteW/SHOpenFolderAndSelec
 
 Ranking: replayable, manifest, свежий capturedAt, ID. Browser headers дают только bounded direct resource size, явно «Файл» и скрытый при manifest/segment context. Production duration/resolution/estimated video size неизвестны. Synthetic formatters не создают real facts. При popup open нет metadata network probes; permissions/content-script authority не расширены. Все transport/security/TTL bounds сохраняются.
 
-VK остаётся заблокированным. Stage 9 не входит в это решение. Evidence — STAGE_8_VERIFICATION.md.
+VK остаётся заблокированным. Stage 9 не входит в это решение. Evidence — VERIFICATION.md.
 
-## ADR-028 — Stage 9: distribution и ручные gates
+## ADR-028 — Production distribution и обновления
 
-Явный запрос пользователя заменяет старое исключение app updater из v1. Репозиторий private, основной installer NSIS/per-user, Windows x64, ожидаемый стабильный `%LOCALAPPDATA%\Programs\Mangar`, app data/tools вне install dir. Private GitHub auto-check и установка только по click, fine-grained Contents:read PAT только Win32 Credential Manager, helper без сети/secret, strict metadata/size/SHA-256, Authorization strip на storage redirects. Это согласованный контракт; implementation/real upgrade ещё pending.
+Windows 10/11 x64, NSIS per-user, стабильный `%LOCALAPPDATA%\Programs\Mangar`; данные/tools/logs/temp остаются в `%LOCALAPPDATA%\YTDLPGUIMangar`. Установка/upgrade используют ownership preflight, journal/rollback, отдельные install/update mutexes, payload hashes и runtime version check. Uninstall сохраняет пользовательские данные и удаляет только собственные binaries/ярлыки/registration.
 
-Production extension идёт через Private CWS/trusted tester/review, не forced install/self-hosted CRX/unpacked. Actual CWS ID нельзя вывести из dev key: в ZIP dev key исключён, source dev identity сохранена. Production allowlist будет только actual CWS ID после получения. Browser protocol1 не связывается с equality app/extension versions. CWS и app update channels независимы.
+App version source — `internal/buildinfo/VERSION`: stable SemVer в Windows uint16 bounds, embedded Go version, derived Wails metadata через sync-version. App/browser-host/updater/installer/update manifest читают один source. Extension version независима; production CWS ID закреплён в `internal/distribution/cws.json`, store-only host не принимает dev origin.
 
-Подготовка CWS package использует runtime allowlist и fail-closed извлечение production worker из неизменного dev source, удаляя только opt-in diagnostic blocks. Структура source должна точно совпасть; изменение markers/остаточная diagnostic строка останавливает packaging. Тот же существующий capture/page/navigation fixture исполняется на полученном worker. Stage7.2.2 diagnostic source/поведение не меняются, gate остаётся OPEN/BLOCKED. ZIP из clean committed source, fixed timestamps/ordering, provenance/hash в ignored dist. Icons получены из existing app artwork, permissions сохранены, popup disclosure честно говорит о cookies/local Native Messaging.
+PUBLIC source/releases — `Valturere/Mangar-Downloader`. Старый private repository сохраняется отдельно. Updater анонимный, без PAT/Authorization и token UI; TTL 24 часа, установка только по click. HTTPS/expected repo+assets/size/SHA-256/.part/atomic completion/no downgrade/redirect limits сохраняются. Helper не обращается к сети и ждёт Exit перед запуском NSIS. Общий Win32 Credential Manager utility нужен только для legacy credential cleanup в helper и остаётся отдельным пакетом.
 
-В ходе работы пользователь зарегистрировал developer account, оплатил сбор и подтвердил active account. Следующий ручной gate — первый draft item/actual ID; для review также public policy URL. Public policy location не создаётся без отдельного разрешения. Никакой CWS item/review/production install или final app release не объявляется выполненным. Основной протокол — STAGE_9_VERIFICATION.md; весь этап остаётся единым.
+CWS distribution PUBLIC, item `paimennadokhgjdpgilfcebameolopbm`, extension 1.0.1. Пользовательская установка через Chrome Web Store; ZIP archival/upload-only. `scripts/package-extension.ps1` использует allowlist без dev key/diagnostics. Verified CRX Uploads выключен, локальный private signing key не требуется. Публичная [privacy policy](https://valturere.github.io/Mangar-Privacy/) отделена от binaries/source.
 
-Первичные источники проверены 12 октября2026: [Wails NSIS](https://wails.io/docs/guides/windows-installer/), [NSIS](https://nsis.sourceforge.io/Docs/Chapter4.html), [GitHub Releases](https://docs.github.com/en/rest/releases/releases), [Assets](https://docs.github.com/en/rest/releases/assets), [Win32 Credential Manager](https://learn.microsoft.com/en-us/windows/win32/api/wincred/nf-wincred-credwritew), [CWS publishing](https://developer.chrome.com/docs/webstore/publish), [Private/review/testers](https://developer.chrome.com/docs/webstore/cws-dashboard-distribution), [User Data](https://developer.chrome.com/docs/webstore/program-policies/user-data-faq), [CWS APIv2](https://developer.chrome.com/docs/webstore/api), [distribution](https://developer.chrome.com/docs/extensions/distribute), [Native Messaging](https://developer.chrome.com/docs/extensions/develop/concepts/native-messaging), [Images](https://developer.chrome.com/docs/webstore/images), [Verified CRX](https://developer.chrome.com/docs/webstore/update#verified-crx-uploads). Research не заменяет implementation/acceptance.
-### Продолжение: подтверждённая production identity и version source
+## ADR-029 — Branding
 
-Владелец создал draft1.0.0; screenshot/уточнение подтверждают CWS ID `paimennadokhgjdpgilfcebameolopbm`. Он отличается от dev ID. Пин в `internal/distribution/cws.json`; store URL формируется только из него, backend shell-open не принимает внешний URL. `store` build tag ограничивает production browser-host этим origin; default dev helper/diagnostic origins сохранены. Production host registration/install ещё pending, равенство app/extension versions не требуется.
-
-Single app version source — `internal/buildinfo/VERSION` (пока0.9.0 для будущего real update predecessor). Embedded Go runtime/Settings, derived Wails info через sync-version, build/verify check; stable SemVer и Windows uint16 bounds. Windows fixed file/product versions и string FileVersion заданы явно; Win32 metadata + runtime redirect-pipe check обязателен. `--version` безопасен до profile/mutex/IPC/startup. Package frontend.version не является version source приложения. Output scripts под build/bin, installer/update manifests/tag впоследствии читают тот же VERSION, не свои literal values.
-
-По прямому разрешению опубликована отдельная policy page `https://valturere.github.io/Mangar-Privacy/` (public repo только HTML/.nojekyll, built/HTTPS200); app repo остаётся private. Google Dashboard automation браузером запрещена, поэтому Listing/Privacy/Private tester вручную сохраняет владелец по подготовленному документу; submit откладывается до companion installer/testing instructions. Это не завершение Stage9.
-
-## ADR-029 — Stage9: Mangar Downloader и остановка на CWS forms
-
-По явному запросу пользователя user-facing название — Mangar Downloader (в компактных местах Mangar). Исходник импортирован в build/branding/source-icon.png, слегка скруглённый master build/appicon.png служит единственной основой Windows/extension/store. Технические repo/module/data/IPC/native-host/window-class/uninstall-key/install-dir IDs сохранены; NSIS template закрепляет прежние directory/key, human name/icons получают новый branding. Это не реализация или acceptance installer.
-
-CWS draft1.0.0 уже загружен; для branding replacement Chrome требует повышения версии, поэтому extension1.0.1, app0.9.0/protocol1 прежние. Владелец обновляет тот же item и сохраняет Listing/Privacy/Private tester. Все attachments и текст в одной папке реального DesktopDirectory. Optional marquee1400×560 поддерживается CWS. Screenshots — production empty popup, никаких fake metadata/URL/cookies. Privacy public page меняет только branding/версию пакета.
-
-Обязательная остановка до явного подтверждения владельцем заполнения/сохранения форм; installer/updater/RC/review/final release/full regression до этого не продолжаются. Это продолжение единого Stage9. Пройденные checks не повторяются без нового риска.
-
-## Переход Stage 9 на PUBLIC Releases
-
-По решению владельца private updater заменён anonymous PUBLIC `Valturere/Mangar-Downloader`: без PAT/UI/token storage/Authorization. Старый private repo сохраняется. Публикуется новый проверенный source snapshot без private development history. Ранее описанные private/trusted-testers/PAT решения отменены. CWS distribution PUBLIC, item неизменен. Общий Credential Manager utility и updater/installer/helper/security infrastructure сохраняются.
+Пользовательское имя — Mangar Downloader, в компактных местах Mangar. Иконка M со стрелкой используется в app/tray/installer/extension/store artwork. Source PNG и deterministic export scripts сохраняются; технические ProductID/data paths/Native Messaging host name/installer naming contract не переименовываются.

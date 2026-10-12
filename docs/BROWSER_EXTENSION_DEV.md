@@ -1,16 +1,8 @@
-# Расширение Mangar Downloader — dev workflow (Stage 8)
+# Разработка расширения Mangar Downloader
 
-Актуальное продолжение Stage9: CWS item `paimennadokhgjdpgilfcebameolopbm` draft1.0.0 подтверждён; отличается от dev ID. `scripts/build-production.ps1` собирает main и sibling host с `-tags store` (только actual CWS origin). Старый build-browser-integration/default Go build и dev HKCU scripts по-прежнему предназначены для unpacked dev ID. Не регистрировать dev host для CWS и не добавлять dev origin в production manifest. Installer/HKCU production registration пока pending. [Public policy](https://valturere.github.io/Mangar-Privacy/).
+Source extension version 1.0.1. Production CWS item `paimennadokhgjdpgilfcebameolopbm` отличается от dev ID. `scripts/build-production.ps1` собирает store-only host; installer регистрирует production Native Messaging в HKCU Chrome/Edge 32/64. Dev HKCU scripts/default host предназначены для unpacked dev ID, его нельзя подставлять в production manifest.
 
-Stage9 preparation: текущий source manifest.version1.0.0, public dev key/ID и opt-in diagnostics сохранены. Для будущего production путь — Private Chrome Web Store, **ещё не опубликовано**. `scripts/package-extension.ps1` создаёт exact committed ZIP без dev key/diagnostics, с icons/CSP. Actual CWS ID подтверждён и отличается от dev ID; store-only host разрешает только actual origin. До registration/review/install gate этот документ остаётся developer workflow. [CWS submission](CHROME_WEB_STORE_SUBMISSION.md), протокол (внутренний протокол в private archive).
-
-Расширение опционально. Обычная вставка URL работает через прежний engine; после ошибки доступа приложение может использовать native cookies yt-dlp. Для сложного iframe/CDN откройте видео в Chrome или Edge, начните воспроизведение, откройте расширение и нажмите «Скачать в Mangar». Если найдено несколько потоков, выберите нужный host и тип. Расширение не угадывает новый manifest из fragments и не снимает DRM.
-
-Основное действие обычного popup — текущая HTTP(S)-страница: «Скачать в Mangar». Наличие media captures не требуется. URL активной вкладки текущего окна перечитывается при явном нажатии; popup получает доступность, safe title, safe host и признак YouTube. Сообщение `{"version":1,"type":"page_url","url":"…"}` не содержит title/cookies/headers/capture. Нет отправки при открытии popup, page history/storage и отдельного YouTube/Shorts parser. Служебные схемы, credentials, некорректные и чрезмерно длинные URL отклоняются; backend повторяет проверку.
-
-`page_url` создаёт обычный standalone Request: общий extractor/provider profile/cookie fallback/bounded impersonation, `--no-playlist`, best video+audio, N8, MP4. Page jobs используют тот же max3/FIFO/Retry/Cancel/Remove/shutdown. Internal googlevideo streams не используются как source. Unsupported page получает обычную ошибку; если доступны media captures, пользователь выбирает их сам.
-
-Pending page URL остаётся в backend RAM без 15-минутного media TTL, в общем порядке поступления с captures (не более 32 ожидающих). Текущая папка принимает его сразу; без папки окно раскрывается. Ошибка выбора папки сохраняет pending ссылку. Page и capture ожидают одну папку; Exit очищает оба. Browser tab title не передаётся: финальное название приходит из yt-dlp metadata.
+`scripts/package-extension.ps1` создаёт exact committed ZIP без dev key/opt-in diagnostics, с icons/CSP. Production distribution PUBLIC через Chrome Web Store; ZIP upload/archival-only. [CWS submission](CHROME_WEB_STORE_SUBMISSION.md), [проверки](VERIFICATION.md), [policy](https://valturere.github.io/Mangar-Privacy/).
 
 ## Сборка и регистрация
 
@@ -76,7 +68,7 @@ Driver временно направляет HKCU Native Messaging на тест
 
 Browser smoke использует настоящие установленные браузеры, unpacked extension, helper и production EXE с отдельными профилями и cloned managed tools в `.local/stage7-2`. Синтетический cross-origin iframe требует cookies/Origin/Referer/X-header на master/child/init/segments. Первый capture проверяет toolbar popup; для повторной передачи тест удерживает реальный extension popup document во время Windows focus transitions. Production tools hashes сравниваются до/после.
 
-Real VK smoke включается только через `MANGAR_VK_PAGE` с обычной страницей пользователя, без signed manifest в тестах. В текущем сценарии выбирается «Плеер 2»; изменение сайта может потребовать корректировки smoke driver. Payload никогда не печатается/не сохраняется как fixture. Подробные фактические результаты — STAGE_7_2_VERIFICATION.md (внутренний протокол в private archive).
+Real VK smoke включается только через `MANGAR_VK_PAGE` с обычной страницей пользователя, без signed manifest в тестах. В текущем сценарии выбирается «Плеер 2»; изменение сайта может потребовать корректировки smoke driver. Payload никогда не печатается/не сохраняется как fixture.
 
 Первичные источники: [Chromium webRequest](https://developer.chrome.com/docs/extensions/reference/api/webRequest), [cookies](https://developer.chrome.com/docs/extensions/reference/api/cookies), [Native Messaging](https://developer.chrome.com/docs/extensions/develop/concepts/native-messaging), [Edge Native Messaging](https://learn.microsoft.com/en-us/microsoft-edge/extensions/developer-guide/native-messaging), [native cookies yt-dlp 2026.08.19](https://github.com/yt-dlp/yt-dlp/blob/2026.08.19/yt_dlp/cookies.py).
 
@@ -94,4 +86,4 @@ YouTube — page action, внутренние googlevideo cards скрыты. Д
 
 Opening popup вызывает только local page-info/list; нет HEAD, Range, manifest fetch, yt-dlp, remote ffprobe, network content scripts. Нет новых content scripts/permissions. Local render не ждёт native host/engine. TTL остаётся 15 min, storage bounds прежние; top/frame navigation, tab close/alarms clear captures. Проверка generation повторяется после await tabs/cookies, чтобы in-flight reply не восстановил старый iframe capture.
 
-Visual QA: `node scripts/stage8-popup-smoke.mjs [chrome|msedge]`, screenshots/result.json только `.local/stage8/popup`. 100/125/150% — controlled DSF, light/dark/forced-colors, page/HLS/DASH/distinct/long/full/partial/empty/error/blocked/YouTube. Полный отчёт — STAGE_8_VERIFICATION.md.
+Visual QA: `node scripts/stage8-popup-smoke.mjs [chrome|msedge]`, screenshots/result.json только `.local/stage8/popup`. 100/125/150% — controlled DSF, light/dark/forced-colors, page/HLS/DASH/distinct/long/full/partial/empty/error/blocked/YouTube. Полный отчёт — VERIFICATION.md.

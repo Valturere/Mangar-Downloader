@@ -68,7 +68,6 @@ Download engine сохраняет только scheme + host; path/query/fragme
 
 Batch invalid rows не получают execution log: сырой текст invalid строки не выводится пользователю/в логи. Batch ID/index/source filename/output filename доступны в snapshot; обычный execution log по-прежнему связывает logical ID, attempt и execution ID. Import errors русские, без raw filesystem errors/URL. Runtime output сохраняется без перевода после существующей redaction.
 
-Расследование production tools использовало current manifests/hashes, tools.jsonl, read-only историю команд и доступные Defender events. Текущие hashes совпадают, сохранённый tools.jsonl не содержит доказательства удаления. Причина ложного health — общий all-file gate; конкретный исторический удалитель LICENSE/PROVENANCE/ffprobe не установлен. Нельзя считать cleanVersions виновником удаления внутри retained current без доказательства. Подробнее STAGE_6_VERIFICATION.md.
 ## Stage 7.2
 
 Browser capture secrets не входят в events/snapshots/argv log. Raw tool output остаётся оригинальным после redaction: HTTP context и selected cookie values (raw/query/path/JSON escaping), полные URL paths/query, auth headers. Native cookies extraction дополнительно скрывает profile/database paths и crypto/traceback diagnostics; UI показывает короткую русскую ошибку доступа. Standalone логирует только имя выбранного браузера и число/тип ограниченных попыток, без cookie dump. Helper stdout содержит только framed JSON reply, stderr не раскрывает payload.

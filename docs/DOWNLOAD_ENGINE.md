@@ -1,6 +1,6 @@
 # Download Engine
 
-Stage 7.2.2 developer fragment parity tool отделён от engine/очереди/logs. Он делает один public Go GET без retries/redirect follow; managed replay только loopback fixture. Production context/strategy не изменены, VK403 root cause и real MP4 acceptance открыты. См. протокол (внутренний протокол в private archive).
+Stage 7.2.2 developer fragment parity tool отделён от engine/очереди/logs. Он делает один public Go GET без retries/redirect follow; managed replay только loopback fixture. Production context/strategy не изменены, VK403 root cause и real MP4 acceptance открыты.
 
 ## 1. Неподвижные требования
 
@@ -192,13 +192,9 @@ yt-dlp обновляется независимо от приложения, п
 - dependency manager обязан уметь показать текущую версию;
 - после обновления yt-dlp предусмотреть небольшой smoke-test или хотя бы health check (`--version`, executable launch).
 
-### Stage 7.3.1: YouTube и сетевой маршрут
+### Сетевой маршрут
 
-Real normal YouTube (manual + extension page_url), Shorts и второе normal video проверены до MP4/video+audio/full decode на managed stable `2026.08.19`, без изменения `bv+ba/b`, N32 и dependencies. AV1+Opus сохранены stream-copy; temp/process cleanup проверены. Протокол (внутренний протокол в private archive).
-
-Исходная сеть: metadata работала, DNS/TCP GVS проходили, TLS handshake не завершался; HTTP status/bytes отсутствовали и minimal CLI повторял failure. N1, IPv4 и supported impersonation не исправили его; nightly тоже failed. Пользователь включил Happ system proxy и сменил bot-rejected VPN exit на рабочий: тот же production engine скачал реальные streams. Proxy обнаруживает сам upstream yt-dlp; отдельные app proxy settings/flags и providers не добавлены. Работоспособность browser HTTP/3 через router zapret не доказывает доступность CLI HTTPS/TCP. Public test через один VPN exit может дать `LOGIN_REQUIRED` вместо transport stall.
-
-Отсутствие `.part` growth сравнивается с progress bytes: yt-dlp может буферизовать disk write. Signed media URLs/visitor/PO values остаются RAM-only, в протокол входят host/status/format/transport. Унаследованный generic metadata.id/query→filename risk отложен до Stage 8 security polish; naming policy здесь не изменена.
+Работа YouTube/VK и других защищённых источников зависит от network path, сессии и upstream extractor. Полный metadata/format result нужно отличать от успешно скачанного видео с аудио и проверенного MP4. Не следует менять best-stream policy или снижать качество только ради обхода отдельной сетевой ошибки.
 
 ## Совместимость Stage 7.2
 
@@ -208,15 +204,13 @@ Browser-assisted Request поступает только через провер
 
 После 403 для browser capture или cookie retry возможен один impersonation retry, только если managed runtime probe объявляет target. Он сохраняет headers/cookies и не устанавливает зависимости. DRM даёт «Видео защищено DRM и не поддерживается.», AES-128 не отождествляется с DRM.
 
-Header/cookie propagation на master/child/init/segments подтверждена real protected local HLS/DASH в Stage 7.2. Тогда `-N 32`, лучшие потоки, 3 workers и MP4 publication не изменены. Реальный VK достиг native HLS download и остановился с отсутствующим intermediate fragment; изменения downloader/лимита ради этого результата не добавлены. Протокол (внутренний протокол в private archive).
+Header/cookie propagation на master/child/init/segments подтверждена real protected local HLS/DASH в Stage 7.2. Тогда `-N 32`, лучшие потоки, 3 workers и MP4 publication не изменены. Реальный VK достиг native HLS download и остановился с отсутствующим intermediate fragment; изменения downloader/лимита ради этого результата не добавлены.
 
-### Stage 7.2.1: исследование HLS без production fallback
+### HLS compatibility
 
-На свежих пользовательских captures проверены N32/16/8/4/2/1: ни одна strategy не создала полный VK MP4. Подтверждены HTTP403 на fragments, в том числе при N1; FileNotFound N32 возник после отказов/skip. Manifest — master, проверенный variant VOD/ENDLIST/MEDIA-SEQUENCE=1; предупреждение native downloader не доказывает sliding/live. Диагностический FFmpeg HLS завершился с0xC0000409. Safe N неизвестно; production classifier/retry/downloader не менялись. Протокол Stage7.2.1 (внутренний протокол в private archive).
+Ошибки доступа к отдельным fragments возможны при любом `-N`, в том числе 1. Missing fragment или предупреждение native downloader сами по себе не доказывают live/sliding playlist. Устойчивый provider-specific VK HTTP profile и автоматический FFmpeg fallback не заявляются; диагностика не меняет production classifier/downloader/retry.
 
-Developer-only receiver в test-файле применяет одну явно заданную strategy на каждый свежий capture, использует cloned tools/изолированные paths и останавливается после серии fragment403/429. Это не production fallback. Protected FFmpeg fixture подтверждает headers/cookies propagation на synthetic data; реальный FFmpeg с private cookies блокируется, поскольку managed yt-dlp кладёт cookie values в child argv. В пользовательских VK captures cookies count0.
-
-## Stage 8: default, имена, ошибки и retention
+## Default, имена, ошибки и retention
 
 Общий `protocol.go/ytdlpArgs` теперь передаёт `-N 8`: manual, TXT, page_url и media_capture проходят один builder, включая Retry. Best video/audio, 3 workers, MP4 remux-first, admission и publication lock сохранены. N32 не объявляется доказанной причиной VK403.
 
