@@ -176,7 +176,10 @@ func (c *Client) Check(ctx context.Context) (*Candidate, error) {
 	data, e := c.apiJSON(ctx, "/releases/latest")
 	if e != nil {
 		var status *apiStatusError
-		if errors.As(e, &status) && status.status == 404 && c.available(ctx) == nil {
+		if errors.As(e, &status) && status.status == 404 {
+			if availableError := c.available(ctx); availableError != nil {
+				return nil, availableError
+			}
 			return nil, ErrNoRelease
 		}
 		return nil, e

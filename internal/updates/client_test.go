@@ -116,6 +116,36 @@ func TestPublicRedirectPolicy(t *testing.T) {
 		t.Fatal("redirect loop not bounded", e, calls.Load())
 	}
 }
+
+func TestPublicNoReleaseAndUnavailableListing(t *testing.T) {
+	for status, expected := range map[int]error{200: ErrNoRelease, 403: ErrRate, 404: ErrAccess, 503: ErrService} {
+		t.Run(http.StatusText(status), func(t *testing.T) {
+			calls := 0
+			server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				calls++
+				if r.Header.Get("Authorization") != "" || r.Header.Get("Cookie") != "" {
+					t.Error("public request carried credentials")
+				}
+				if strings.HasSuffix(r.URL.Path, "/latest") {
+					w.WriteHeader(404)
+					return
+				}
+				if status == 403 {
+					w.Header().Set("X-RateLimit-Remaining", "0")
+				}
+				w.WriteHeader(status)
+				_, _ = w.Write([]byte("[]"))
+			}))
+			defer server.Close()
+			client := NewClient("0.9.0")
+			client.base, client.testHTTP = server.URL, true
+			client.http.Transport = server.Client().Transport
+			if _, e := client.Check(context.Background()); !errors.Is(e, expected) || calls != 2 {
+				t.Fatal("incorrect anonymous empty/unavailable result", e, calls)
+			}
+		})
+	}
+}
 func TestPublicReleaseDirectAndRedirectWithoutAuthentication(t *testing.T) {
 	var tokenLeaked atomic.Bool
 	payload := []byte("MZ synthetic fixture installer; never executed")
