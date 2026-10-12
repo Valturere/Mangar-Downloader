@@ -1,4 +1,4 @@
-param([switch]$Publish,[switch]$UpdateTest,[string]$GateRecord='')
+param([switch]$Publish,[switch]$UpdateTest,[switch]$ReleaseCandidate,[string]$GateRecord='')
 $ErrorActionPreference='Stop'
 $releaseRoot=[IO.Path]::GetFullPath((Join-Path $PSScriptRoot '..'))
 Push-Location $releaseRoot
@@ -9,6 +9,7 @@ try {
     if($LASTEXITCODE -ne 0){throw 'Cannot read source commit'}
     $sourceStatus=git status --porcelain=v1
     if($LASTEXITCODE -ne 0 -or $sourceStatus){throw 'Release requires clean committed source'}
+    if($UpdateTest -and $ReleaseCandidate){throw 'UpdateTest and ReleaseCandidate are mutually exclusive'}
     if($UpdateTest -and $version -notmatch '^0\.9\.\d+$'){throw 'Update-test release is restricted to 0.9.x'}
     if(!$UpdateTest -and $version -ne '1.0.0'){throw 'First final release must be 1.0.0'}
     if($Publish){
@@ -16,7 +17,8 @@ try {
         $gates=Get-Content -LiteralPath $GateRecord -Raw | ConvertFrom-Json
         if($gates.schema -ne 1 -or $gates.source_commit -cne $commit -or $gates.version -cne $version){throw 'Verification record does not match this source/version'}
         foreach($gate in @('baseline','installer','native_launch','first_run_tools','real_mp4','tray_exit','uninstall','preservation')){if($gates.$gate -cne 'PASS'){throw "Unclosed release gate: $gate"}}
-        if(!$UpdateTest){foreach($gate in @('clean_windows','real_upgrade','cws_native','full_final')){if($gates.$gate -cne 'PASS'){throw "Unclosed final gate: $gate"}}}
+        if($ReleaseCandidate -and $gates.real_upgrade -cne 'PASS'){throw 'RC requires verified upgrade'}
+        if(!$UpdateTest -and !$ReleaseCandidate){foreach($gate in @('clean_windows','real_upgrade','cws_native','full_final')){if($gates.$gate -cne 'PASS'){throw "Unclosed final gate: $gate"}}}
         $repository=gh repo view Valturere/Mangar-Downloader --json visibility,nameWithOwner | ConvertFrom-Json
         if($LASTEXITCODE -ne 0 -or $repository.visibility -cne 'PUBLIC' -or $repository.nameWithOwner -cne 'Valturere/Mangar-Downloader'){throw 'Release repository must be the approved public repository'}
         $remoteCommit=gh api "repos/Valturere/Mangar-Downloader/commits/$commit" --jq .sha
@@ -50,13 +52,15 @@ try {
     $sums=($assets|ForEach-Object{"$((Get-FileHash -LiteralPath $_).Hash.ToLowerInvariant())  $([IO.Path]::GetFileName($_))"}) -join "`n"
     $sumFile=Join-Path $output 'SHA256SUMS.txt'
     [IO.File]::WriteAllText($sumFile,$sums+"`n",[Text.UTF8Encoding]::new($false))
-    $title=if($UpdateTest){"Тест обновления: Mangar Downloader $version"}else{"Mangar Downloader $version"}
-    $notes=@("$title","",$(if($UpdateTest){'Временный public update-test predecessor/target Stage 9. Не финальный accepted release.'}else{'Первый Windows installer release.'}),"",'Windows10/11 x64, per-user NSIS. Settings/tools/downloads сохраняются при upgrade. Обновления проверяются анонимно; GitHub account/token не нужен.',"",'Расширение устанавливается из Chrome Web Store. ZIP приложен только как архив для разработки, не для обычной установки.',"",'Installer пока без Authenticode подписи; поддельный сертификат не используется.',"","Source: $commit","Installer SHA-256: $sha") -join "`n"
+    $tag=if($ReleaseCandidate){"v$version-rc.1"}else{"v$version"}
+    $title=if($UpdateTest){"Тест обновления: Mangar Downloader $version"}elseif($ReleaseCandidate){"Кандидат выпуска: Mangar Downloader $version (RC1)"}else{"Mangar Downloader $version"}
+    $notes=@("$title","",$(if($UpdateTest){'Временный public update-test predecessor/target Stage 9. Не финальный accepted release.'}elseif($ReleaseCandidate){'RC для проверки companion app и Chrome Web Store review. Не финальный v1.0.0; CWS-installed native acceptance, clean Windows и final full regression ещё открыты. Updater не предлагает prerelease автоматически.'}else{'Первый Windows installer release.'}),"",'Windows10/11 x64, per-user NSIS. Settings/tools/downloads сохраняются при upgrade. Обновления проверяются анонимно; GitHub account/token не нужен.',"",'Расширение устанавливается из Chrome Web Store. ZIP приложен только как архив для разработки, не для обычной установки.',"",'Installer пока без Authenticode подписи; поддельный сертификат не используется.',"","Source: $commit","Installer SHA-256: $sha") -join "`n"
     $notesFile=Join-Path $output 'RELEASE_NOTES.md'
     [IO.File]::WriteAllText($notesFile,$notes+"`n",[Text.UTF8Encoding]::new($false))
     if($Publish){
         # No silent tag overwrite or replacement of an existing Release.
-        gh release create "v$version" @assets $sumFile --repo Valturere/Mangar-Downloader --target $commit --title $title --notes-file $notesFile
+        $flags=@();if($ReleaseCandidate){$flags+='--prerelease';$flags+=@('--latest=false')}
+        gh release create $tag @assets $sumFile --repo Valturere/Mangar-Downloader --target $commit --title $title --notes-file $notesFile @flags
         if($LASTEXITCODE -ne 0){throw 'GitHub Release publication failed'}
     }
     Write-Output "Release artifacts: $output; publication=$([bool]$Publish)"

@@ -8,6 +8,8 @@ PUBLIC source/release repository: `Valturere/Mangar-Downloader`. Private develop
 
 Первый final release — v1.0.0. Нужны baseline, installer/native launch, tools/real MP4, tray/Exit, uninstall/preservation, clean Windows, real upgrade, CWS-installed native acceptance и один integrated final regression после обновления до 1.0.0. Fixture не заменяет настоящий anonymous GitHub update или CWS extension. Подготовка RC допустима до закрытия final gates; final publish запрещён до их закрытия.
 
+`-ReleaseCandidate` готовит тот же app VERSION 1.0.0 и публикует отдельный prerelease `v1.0.0-rc.1` без latest. Требуются базовые installer gates и реальный upgrade. RC имеет публичный installer URL для CWS reviewer; anonymous updater отклоняет prerelease и продолжает использовать последний stable update-test. Финальный `v1.0.0` публикуется только после final gates, с теми же проверенными bytes; если код меняется, artifact требует новой проверки.
+
 Installer пока unsigned; поддельный сертификат не используется. Chrome Web Store item: `paimennadokhgjdpgilfcebameolopbm`, PUBLIC. Расширение ставится из Store, archival ZIP не является пользовательским способом установки. Submit for review выполняет владелец только после явного согласования готового installer/testing package.
 
 Перед release выполнить `.codex/skills/release-windows/SKILL.md` и применимые checks из `scripts/verify.ps1`. Full matrix не повторять без изменения или новой причины.

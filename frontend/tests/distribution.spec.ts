@@ -52,7 +52,6 @@ for (const scale of [1, 1.25, 1.5]) {
                   revision: 1,
                   version,
                   latest: '',
-                  connected: false,
                   busy: false,
                   phase: 'idle',
                   message: '',

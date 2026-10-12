@@ -6,6 +6,8 @@
 
 PUBLIC repository начинается с проверенного source snapshot. Старый private archive сохраняется. Stage 9 продолжается; CWS-installed acceptance/clean Windows/final regression ещё открыты.
 
+Подготовлен RC1 app version 1.0.0 для CWS companion review; final v1.0.0 ещё не выпущен. Реальный anonymous update 0.9.0 → public0.9.2 пройден с сохранением settings/tools/MP4 и production Native Messaging.
+
 ### Изменено
 - Updater использует anonymous PUBLIC GitHub Releases `Valturere/Mangar-Downloader`: без PAT, token UI и authenticated requests. TTL 24 часа, установка только по явному click; существующая installer/helper/security infrastructure сохранена.
 - Общий Credential Manager utility сохранён; GitHub credential используется только для удаления legacy записи, без чтения.
@@ -15,6 +17,8 @@ PUBLIC repository начинается с проверенного source snapsh
 - Stage9 (продолжение): single app VERSION0.9.0/runtime/Windows metadata/About, pinned actual CWS ID, separate production browser-host origin и безопасная кнопка store в Settings. Отдельная public privacy page опубликована по разрешению владельца; private development archive сохранён. Installer/updater/CWS review/real upgrade/final1.0 остаются pending.
 - Stage9 (незавершён): CWS package1.0.0 из clean committed source, runtime allowlist без dev key/fragment diagnostics, SHA-256/provenance и fixed ZIP metadata. Static icons из existing app artwork, popup disclosure, RU/EN privacy policy и listing/permissions материалы. Developer account активен; ручной gate — первый draft item/actual ID и public policy URL; installer/updater/release pending.
 - Stage 8: native папка логов в Settings, indeterminate progress, безопасная startup retention закрытых logs/marked temp. Протокол — docs/STAGE_8_VERIFICATION.md.
+
+Подготовлен RC1 app version 1.0.0 для CWS companion review; final v1.0.0 ещё не выпущен. Реальный anonymous update 0.9.0 → public0.9.2 пройден с сохранением settings/tools/MP4 и production Native Messaging.
 
 ### Изменено
 - Stage9 branding: пользовательское имя Mangar Downloader, единая M + download icon для Windows/расширения/CWS, extension1.0.1 для замены draft1.0.0. Материалы и инструкция собраны на реальном рабочем столе; public policy переименована без изменения смысла. Технические IDs/пути сохранены. Обязательная остановка до подтверждения сохранения CWS форм; installer/updater/release не продолжались.
@@ -39,6 +43,8 @@ PUBLIC repository начинается с проверенного source snapsh
 - Добавлен фундамент Этапа 0: Wails v2.15.0, React/TypeScript/Vite, минимальное frameless окно.
 - Добавлены проверочные сценарии Windows tray, Job Objects и отказа WebView2 preflight.
 - Добавлены frontend layout tests, formatter/lint/typecheck и воспроизводимый verification script.
+
+Подготовлен RC1 app version 1.0.0 для CWS companion review; final v1.0.0 ещё не выпущен. Реальный anonymous update 0.9.0 → public0.9.2 пройден с сохранением settings/tools/MP4 и production Native Messaging.
 
 ### Изменено
 - Зафиксированы проверенные решения tray/process tree, WebView2 policy и выбор NSIS; ограничения описаны в документации.
