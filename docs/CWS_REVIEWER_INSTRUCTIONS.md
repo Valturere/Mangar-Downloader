@@ -9,7 +9,7 @@ Item paimennadokhgjdpgilfcebameolopbm, draft1.0.1, PUBLIC. Формы сохра
 1. Windows10/11 x64. Установить Mangar Downloader по предоставленной ссылке, тем же Windows user, что Chrome. Per-user, без обязательного администратора. При отсутствии WebView2 installer ставит официальный Microsoft runtime; нужен интернет.
 2. Настройки → Компоненты → установить yt-dlp, FFmpeg/ffprobe, Deno. Пользователь не подключает GitHub: приложение проверяет PUBLIC Releases анонимно.
 3. Установить проверяемое extension из CWS. Native Messaging регистрируется installer автоматически. Extension требует companion app.
-4. Открыть https://www.w3.org/2010/05/video/mediaevents.html и нажать Play. Открыть popup, выбрать candidate `media.w3.org`/`trailer.mp4`, передать в Mangar, выбрать destination и начать загрузку. Ресурс: https://media.w3.org/2010/05/sintel/trailer.mp4 — публичная HTML5 video demo W3C без авторизации. HTTP page и media HEAD `200 video/mp4` проверены; сам CWS-installed smoke ещё pending.
+4. Открыть https://www.w3schools.com/html/html5_video.asp и нажать Play. Открыть popup, выбрать candidate `www.w3schools.com`/`mov_bbb.mp4`, передать в Mangar, выбрать destination и начать загрузку. Ресурс: https://www.w3schools.com/html/mov_bbb.mp4 — публичная HTML5 video demo W3Schools без авторизации. HTTP page и media HEAD `200 video/mp4` проверены; сам CWS-installed smoke ещё pending.
 5. Ожидаются локальная очередь и итоговый MP4 из лучших доступных video/audio streams. Extension передаёт выбранный URL/title и необходимый scoped context только локальному Native Messaging host; downloader обращается к источнику/CDN.
 6. Для launch test закрыть app настоящим Exit и повторить передачу: installed helper запускает app. X при включённом close-to-tray оставляет app в трее.
 7. При отказе connection убедиться, что installer установлен текущим Windows user; повторить после завершения установки/update. Chrome permission confirmation — обычный store flow.
@@ -28,7 +28,7 @@ SHA256SUMS.txt is available on the RC release page. The installer is currently u
 
 In the companion, open “Настройки” (Settings) → components and install yt-dlp, FFmpeg/ffprobe and Deno. On “Загрузка” (Download), choose a destination folder. Install the submitted extension from the review package.
 
-Open https://www.w3.org/2010/05/video/mediaevents.html and press Play. Open the extension popup, select the media.w3.org / trailer.mp4 media candidate and send it to Mangar. The direct test media is https://media.w3.org/2010/05/sintel/trailer.mp4. Expect a local download job and an MP4 containing video and audio in the selected folder. This direct MP4 example does not require separate-stream merging.
+Open https://www.w3schools.com/html/html5_video.asp and press Play. Open the extension popup, select the www.w3schools.com / mov_bbb.mp4 media candidate and send it to Mangar. The direct test media is https://www.w3schools.com/html/mov_bbb.mp4. Expect a local download job and an MP4 containing video and audio in the selected folder. This direct MP4 example does not require separate-stream merging.
 
 For the launch test, exit the companion using tray “Выйти” (Exit), then send the media again from the popup: the installed Native Messaging helper should launch the app. Sending to an already running companion should reuse that instance. The window X can hide to tray.
 
