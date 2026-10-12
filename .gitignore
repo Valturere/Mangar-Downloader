@@ -1,0 +1,63 @@
+# IDE / OS
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+Desktop.ini
+
+# Environment / secrets
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+
+# Logs and runtime
+logs/
+temp/
+*.log
+
+# Downloaded media / tools
+*.part
+*.ytdl
+*.mp4
+*.mkv
+*.webm
+*.m4a
+*.mp3
+/tools/
+
+# Go
+/bin/
+/dist/
+coverage.out
+*.test
+
+# Node
+node_modules/
+frontend/node_modules/
+frontend/dist/
+frontend/.vite/
+
+# Wails / builds
+build/bin/
+build/windows/installer/*.exe
+*.syso
+
+# Local project runtime data
+.local/
+.runtime/
+
+# Generated Wails bindings and local verification results
+frontend/wailsjs/
+frontend/package.json.md5
+frontend/test-results/
+/test-results/
+
+# Локальные signing keys и CRX не входят в source/release.
+*.pem
+*.pfx
+*.p12
+*.crx
+frontend/playwright-report/
+build/windows/installer/wails_tools.nsh

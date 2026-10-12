@@ -1,0 +1,28 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<title>Проверка tray</title>
+<style>
+  body { margin: 0; font: 13px 'Segoe UI', sans-serif; }
+  header { --wails-draggable: drag; height: 40px; display: flex; align-items: center; background: #f6f7f9; }
+  span { margin-left: 16px; }
+  .controls { --wails-draggable: no-drag; display: flex; height: 40px; margin-left: auto; }
+  .controls button { --wails-draggable: no-drag; width: 44px; border: 0; }
+  #hide { position: absolute; top: 350px; left: 32px; height: 32px; }
+  #message { position: absolute; top: 390px; left: 32px; }
+</style>
+</head>
+<body>
+<header ondblclick="if (!event.target.closest('button')) runtime.WindowToggleMaximise()">
+  <span>Проверка tray</span>
+  <div class="controls">
+    <button onclick="runtime.WindowMinimise()">−</button>
+    <button onclick="runtime.WindowToggleMaximise()">□</button>
+    <button onclick="runtime.Quit()">×</button>
+  </div>
+</header>
+<button id="hide" onclick="go.main.App.HideForTray().then(() => message.textContent = '').catch(error => message.textContent = error.message)">Скрыть в трей (проверка)</button>
+<p id="message" role="status"></p>
+</body>
+</html>

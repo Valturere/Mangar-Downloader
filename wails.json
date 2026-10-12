@@ -1,0 +1,20 @@
+{
+  "$schema": "https://wails.io/schemas/config.v2.json",
+  "name": "YTDLP-GUI-Mangar",
+  "outputfilename": "YTDLP-GUI-Mangar",
+  "frontend:install": "npm ci",
+  "frontend:build": "npm run build",
+  "frontend:dev:watcher": "npm run dev",
+  "frontend:dev:serverUrl": "auto",
+  "info": {
+    "companyName": "Valturere",
+    "productName": "Mangar Downloader",
+    "productVersion": "0.9.0",
+    "comments": "Компактный интерфейс загрузки видео",
+    "copyright": "© 2026 Valturere"
+  },
+  "author": {
+    "name": "Valturere",
+    "email": "okes209@gmail.com"
+  }
+}

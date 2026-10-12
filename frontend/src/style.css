@@ -1,0 +1,169 @@
+:root {
+  font-family: 'Segoe UI Variable', 'Segoe UI', system-ui, sans-serif;
+  font-size: 13px;
+  font-synthesis: none;
+  color: var(--text-primary);
+  background: var(--background);
+  --background: #f6f7f9;
+  --surface: #ffffff;
+  --surface-hover: #e8ecf0;
+  --control-hover: #f8f9fb;
+  --control-border-hover: #a5b1bf;
+  --nav-hover: #edf1f5;
+  --focus-surface: #f0f5f8;
+  --accent-surface: #e5eef3;
+  --text-primary: #242c36;
+  --text-secondary: #586574;
+  --border: #dce1e8;
+  --control-border: #bdc6d0;
+  --accent: #285f78;
+  --disabled-text: #687481;
+  --disabled-surface: #eef0f3;
+  --danger: #b4232c;
+  --success: #287749;
+  --on-accent: #ffffff;
+  --control-surface: #ffffff;
+  color-scheme: light;
+  --radius: 4px;
+  --spacing: 8px;
+  --control-height: 32px;
+}
+:root[data-theme='dark'] {
+  color-scheme: dark;
+  --background: #202328;
+  --surface: #272b31;
+  --surface-hover: #393f47;
+  --control-surface: #30353d;
+  --control-hover: #383f49;
+  --control-border-hover: #7d8a99;
+  --nav-hover: #353e49;
+  --focus-surface: #303f4a;
+  --accent-surface: #2b4554;
+  --text-primary: #eef1f5;
+  --text-secondary: #b1bdcb;
+  --border: #414853;
+  --control-border: #677382;
+  --accent: #83c8e4;
+  --disabled-text: #9da8b6;
+  --disabled-surface: #2c3138;
+  --danger: #ff9fa4;
+  --success: #8dd8aa;
+  --on-accent: #16232c;
+}
+* {
+  box-sizing: border-box;
+}
+html,
+body,
+#root {
+  width: 100%;
+  height: 100%;
+  margin: 0;
+}
+button,
+input {
+  font: inherit;
+  color: inherit;
+}
+button {
+  cursor: pointer;
+}
+button,
+input {
+  transition:
+    background-color 120ms,
+    border-color 120ms,
+    color 120ms;
+}
+button:focus:enabled,
+input:focus {
+  border-color: var(--accent);
+}
+button:focus-visible,
+input:focus-visible {
+  outline: 0;
+  border-color: var(--accent);
+  box-shadow: inset 3px 0 0 var(--accent);
+  background-color: var(--focus-surface);
+}
+button:focus,
+input:focus {
+  outline: 0;
+}
+@media (forced-colors: active) {
+  button:focus-visible,
+  input:focus-visible {
+    border-color: Highlight;
+    border-left-width: 3px;
+  }
+}
+input {
+  min-width: 0;
+  width: 100%;
+  height: var(--control-height);
+  padding: 0 calc(var(--spacing) * 1.25);
+  border: 1px solid var(--control-border);
+  border-radius: var(--radius);
+  background: var(--control-surface);
+  cursor: text;
+}
+input:hover {
+  border-color: var(--control-border-hover);
+  background: var(--control-hover);
+}
+input:focus {
+  border-color: var(--accent);
+}
+input::placeholder {
+  color: var(--text-secondary);
+  opacity: 1;
+}
+button:disabled {
+  color: var(--disabled-text);
+  background: var(--disabled-surface);
+  cursor: default;
+}
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+  border: 0;
+}
+h1,
+h2,
+h3,
+p {
+  margin: 0;
+}
+h1 {
+  font-size: 18px;
+  font-weight: 600;
+  line-height: 1.4;
+}
+h2 {
+  font-size: 13px;
+  font-weight: 600;
+}
+h3 {
+  font-size: 13px;
+  font-weight: 600;
+}
+p {
+  color: var(--text-secondary);
+  line-height: 1.5;
+}
+.icon {
+  width: 16px;
+  height: 16px;
+  flex-shrink: 0;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}

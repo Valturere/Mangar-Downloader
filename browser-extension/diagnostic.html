@@ -1,0 +1,21 @@
+<!doctype html>
+<html lang="ru">
+  <head>
+    <meta charset="utf-8" />
+    <title>Mangar: диагностика одного fragment</title>
+  </head>
+  <body>
+    <p>
+      Только при исправном playback. Выберите HLS нужного tab/frame, затем
+      вернитесь к видео. Ожидание одного успешного segment — 30 секунд. Один
+      HTTP replay и до двух manifest GET, без retries. yt-dlp replay пока
+      доступен только в локальных fixtures.
+    </p>
+    <button id="refresh">Обновить список HLS</button>
+    <button id="stop">Stop / очистить RAM</button>
+    <div id="candidates"></div>
+    <p id="status" role="status"></p>
+    <pre id="report"></pre>
+    <script src="diagnostic-page.js" type="module"></script>
+  </body>
+</html>

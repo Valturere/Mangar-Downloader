@@ -1,0 +1,38 @@
+{
+  "manifest_version": 3,
+  "name": "Mangar Downloader",
+  "version": "1.0.1",
+  "minimum_chrome_version": "132",
+  "description": "Передача текущей страницы или медиапотока в локальный Mangar Downloader для скачивания",
+  "key": "MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAyD3Aa71FzztfS5iVvsnEShcZvEsIY4NmYY3Ek/J9kFlQVsIohrvN6cOuZtdgtef+lE7nbJuP4DXlH7z1y8rIvVlPK1NDCzmD+TLCoqAGZf8Uwhwp5p/ybTQTbMK+90Gw9zNTyAE87K20mbrdMWFgAM0V1XPfS5ZWSV4BN167b1Go6c6T7/Z/PHYiX/eGUzoTdcQqQRWOpu+C87ysR3/t6p4yedzSUDI/Gk1a7ffL16y4THzGi7uLFHRA258NstKqsrIV2/YEfI4GUX2iBVlRmCzWynftOouV329dwQEb7ZlOb5yQqC7wA2tqHDVb9ovSvr9atPD/7SIiNNP+27ScvwIDAQAB",
+  "permissions": [
+    "webRequest",
+    "cookies",
+    "storage",
+    "tabs",
+    "webNavigation",
+    "alarms",
+    "nativeMessaging"
+  ],
+  "host_permissions": ["http://*/*", "https://*/*"],
+  "icons": {
+    "16": "icons/16.png",
+    "32": "icons/32.png",
+    "48": "icons/48.png",
+    "128": "icons/128.png"
+  },
+  "background": {
+    "service_worker": "worker.js",
+    "type": "module"
+  },
+  "action": {
+    "default_icon": {
+      "16": "icons/16.png",
+      "32": "icons/32.png",
+      "48": "icons/48.png",
+      "128": "icons/128.png"
+    },
+    "default_popup": "popup.html",
+    "default_title": "Mangar Downloader"
+  }
+}
