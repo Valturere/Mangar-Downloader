@@ -29,5 +29,5 @@ try {
         $runtimeVersion = $process.StandardOutput.ReadToEnd().Trim()
         if ($process.ExitCode -ne 0 -or $runtimeVersion -ne $version) { throw 'Go runtime version не совпадает с version source' }
     } finally { $process.Dispose() }
-    Write-Output "Production build: $output (Mangar Downloader $version, CWS host only)"
+    Write-Output "Production build: $output (Mangar Downloader $version, installed CWS/unpacked host)"
 } finally { Pop-Location }

@@ -3,6 +3,7 @@ package main
 import (
 	"YTDLP-GUI-Mangar/internal/browserbridge"
 	"YTDLP-GUI-Mangar/internal/installation"
+	"YTDLP-GUI-Mangar/internal/pagesupport"
 	"context"
 	"os"
 	"os/exec"
@@ -13,7 +14,7 @@ import (
 
 func main() {
 	// Never print raw errors/payload to either stdout or stderr.
-	if len(os.Args) < 2 || os.Args[1] != hostOrigin {
+	if len(os.Args) < 2 || !acceptOrigin(os.Args[1]) {
 		return
 	}
 	reply := browserbridge.Failure("invalid")
@@ -28,7 +29,16 @@ func main() {
 	defer close(done)
 	var m browserbridge.Message
 	if err := browserbridge.ReadFrame(os.Stdin, &m); err == nil {
-		valid, e := browserbridge.Validate(m, time.Now())
+		var valid browserbridge.Message
+		var e error
+		if m.Type == "get_capabilities" {
+			e = browserbridge.ValidateCapabilities(m)
+			valid = m
+		} else if m.Type == "page_support" {
+			valid, e = browserbridge.ValidatePageSupport(m)
+		} else {
+			valid, e = browserbridge.Validate(m, time.Now())
+		}
 		if e == nil {
 			reply = forward(valid)
 		} else if e.Error() == "authorization" {
@@ -38,9 +48,19 @@ func main() {
 	browserbridge.WriteFrame(os.Stdout, reply)
 }
 func forward(m browserbridge.Message) browserbridge.Reply {
+	if m.Type == "get_capabilities" {
+		return browserbridge.Capabilities()
+	}
 	guardScope, e := installation.LaunchScope()
 	if e != nil || installation.Busy(guardScope) || installation.TransactionPending(filepath.Join(guardScope, "Programs", "Mangar")) {
 		return browserbridge.Failure("unavailable")
+	}
+	if m.Type == "page_support" {
+		supported, err := pagesupport.Check(context.Background(), filepath.Join(guardScope, "YTDLPGUIMangar", "tools"), m.URL)
+		if err != nil {
+			return browserbridge.Failure("support_unavailable")
+		}
+		return browserbridge.Reply{Version: browserbridge.Version, OK: true, Code: "support", Supported: &supported}
 	}
 	id, err := browserbridge.UserIdentity(os.Getenv("LOCALAPPDATA"))
 	if err != nil {
@@ -61,7 +81,7 @@ func forward(m browserbridge.Message) browserbridge.Reply {
 	if err != nil {
 		return browserbridge.Failure("unavailable")
 	}
-	app := filepath.Join(filepath.Dir(self), "YTDLP-GUI-Mangar.exe")
+	app := applicationPath(self)
 	command := exec.Command(app)
 	command.SysProcAttr = &syscall.SysProcAttr{HideWindow: true}
 	if err = command.Start(); err != nil {

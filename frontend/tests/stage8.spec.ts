@@ -41,6 +41,15 @@ async function fixture(page: Page, count = 1) {
       go: {
         main: {
           App: {
+            UpdateSnapshot: () =>
+              Promise.resolve({
+                revision: 1,
+                phase: 'idle',
+                busy: false,
+                error: '',
+                message: '',
+                installSupported: true,
+              }),
             DownloadSnapshot: () =>
               Promise.resolve({ revision: 1, jobs, active: 1, closing: false }),
             DownloadAction: (id: string, action: string) => {

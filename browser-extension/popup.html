@@ -14,26 +14,42 @@
     <main>
       <section id="page" hidden aria-labelledby="page-title">
         <h2 id="page-title" class="video-title">Видео на странице</h2>
-        <p id="page-host" class="host technical"></p>
+        <p id="page-facts" class="media-details" hidden></p>
         <div class="actions">
-          <button id="send-page" type="button" disabled>
-            Скачать в Mangar
-          </button>
+          <button id="send-page" type="button" disabled>Скачать</button>
         </div>
       </section>
       <section id="media" hidden aria-label="Видео из браузера">
-        <details id="media-disclosure">
-          <summary>Видео из браузера</summary>
-          <div id="candidates" aria-busy="true"></div>
-        </details>
+        <div id="candidates" aria-busy="true"></div>
       </section>
     </main>
     <p id="status" role="status" aria-live="polite"></p>
-    <p class="privacy-notice">
-      Расширение временно видит адреса медиазапросов и их контекст. По нажатию
-      выбранная ссылка, а для потока — также заголовки и cookies, передаются
-      локальному Mangar. Серверу разработчика данные не отправляются.
-    </p>
+    <footer id="privacy">
+      <button
+        id="privacy-toggle"
+        class="info-button"
+        type="button"
+        aria-label="Конфиденциальность"
+        aria-expanded="false"
+        aria-controls="privacy-info"
+        aria-describedby="privacy-info"
+      >
+        <span aria-hidden="true">ⓘ</span> Конфиденциальность
+      </button>
+      <div
+        id="privacy-info"
+        class="privacy-notice"
+        role="note"
+        tabindex="0"
+        hidden
+      >
+        <p>Данные передаются только локальному приложению Mangar.</p>
+        <p class="privacy-detail">
+          Для выбранного видео могут передаваться необходимые заголовки и
+          cookies.
+        </p>
+      </div>
+    </footer>
     <script type="module" src="popup.js"></script>
   </body>
 </html>

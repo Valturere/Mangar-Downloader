@@ -49,6 +49,26 @@ func TestPageURLProtocol(t *testing.T) {
 		}
 	}
 }
+
+func TestPageSupportIsStrictAndHostOnly(t *testing.T) {
+	m := Message{Version: Version, Type: "page_support", URL: "https://page.test/watch"}
+	if _, err := ValidatePageSupport(m); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := Validate(m, time.Now()); err == nil {
+		t.Fatal("support query accepted by app IPC")
+	}
+	for _, bad := range []Message{
+		{Version: 2, Type: "page_support", URL: m.URL},
+		{Version: 1, Type: "page_support", URL: "file:///SYNTHETIC_SECRET"},
+		{Version: 1, Type: "page_support", URL: m.URL, Capture: fixture().Capture},
+		{Version: 1, Type: "page_url", URL: m.URL},
+	} {
+		if _, err := ValidatePageSupport(bad); err == nil {
+			t.Fatal("invalid support payload accepted")
+		}
+	}
+}
 func TestFramingAndLimits(t *testing.T) {
 	m := fixture()
 	var b bytes.Buffer
@@ -104,5 +124,24 @@ func TestValidation(t *testing.T) {
 		if _, e := Validate(m, time.Now()); e == nil {
 			t.Fatal(name)
 		}
+	}
+}
+
+func TestCapabilitiesAreHostOnlyAndStrict(t *testing.T) {
+	valid := Message{Version: Version, Type: "get_capabilities"}
+	if err := ValidateCapabilities(valid); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := Validate(valid, time.Now()); err == nil {
+		t.Fatal("capabilities became an app job")
+	}
+	for _, m := range []Message{{Version: 2, Type: "get_capabilities"}, {Version: 1, Type: "page_url"}, {Version: 1, Type: "get_capabilities", URL: "https://secret.test"}, {Version: 1, Type: "get_capabilities", Capture: &Capture{}}} {
+		if ValidateCapabilities(m) == nil {
+			t.Fatal("invalid capabilities query accepted")
+		}
+	}
+	r := Capabilities()
+	if !r.OK || r.Version != 1 || r.ProtocolVersion != 2 || len(r.Capabilities) != 3 {
+		t.Fatal("capabilities reply")
 	}
 }

@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { groups, summaries } from '../popup-model.js';
+import { groups, summaries, popupSelection } from '../popup-model.js';
 import {
   displayTitle,
   responseMetadata,
@@ -22,6 +22,111 @@ const make = (id, url, extra = {}) => ({
     capturedAt: '2026-10-12T10:00:00Z',
   },
   ...extra,
+});
+
+test('Popup chooses usable media before page URL, including YouTube, without a second action', () => {
+  const page = { available: true, youtube: true };
+  assert.deepEqual(popupSelection(page, []), { page: true, candidates: [] });
+  for (const mediaType of ['hls', 'dash', 'mp4', 'webm']) {
+    const candidate = { id: 'one', mediaType, blocked: false };
+    assert.deepEqual(popupSelection(page, [candidate]), {
+      page: false,
+      candidates: [candidate],
+    });
+  }
+  const blocked = { id: 'blocked', mediaType: 'hls', blocked: true };
+  const usable = [{ id: 'a' }, { id: 'b' }];
+  assert.deepEqual(popupSelection(page, [blocked, ...usable]), {
+    page: false,
+    candidates: usable,
+  });
+  assert.deepEqual(popupSelection(page, [blocked]), {
+    page: true,
+    candidates: [],
+  });
+  assert.deepEqual(popupSelection({ available: false }, [blocked]), {
+    page: false,
+    candidates: [blocked],
+  });
+  const duplicate = make('one', 'https://cdn.test/video.m3u8');
+  assert.equal(
+    popupSelection(page, summaries([duplicate, { ...duplicate, id: 'repeat' }]))
+      .candidates.length,
+    1,
+  );
+  assert.deepEqual(
+    popupSelection({ restricted: true, available: false }, usable),
+    { page: false, candidates: [] },
+  );
+  assert.deepEqual(popupSelection({ available: false }, []), {
+    page: false,
+    candidates: [],
+  });
+});
+
+test('Title cleanup is conservative, site-scoped, and keeps secret checks first', () => {
+  assert.equal(
+    displayTitle(
+      '(2) СЕКТА | GEO - YouTube',
+      'https://youtube.com/watch?v=test&ticket=SECRET',
+    ),
+    'СЕКТА | GEO',
+  );
+  assert.equal(
+    displayTitle('Серия 23 | AnimeGO', 'https://animego.me/watch'),
+    'Серия 23',
+  );
+  assert.equal(
+    displayTitle('Серия - YouTube', 'https://unknown.example'),
+    'Серия - YouTube',
+  );
+  assert.equal(
+    displayTitle('Фильм Смотреть онлайн — финал'),
+    'Фильм Смотреть онлайн — финал',
+  );
+  assert.equal(
+    displayTitle('YouTube', 'https://youtube.com'),
+    'Видео на странице',
+  );
+  assert.equal(
+    displayTitle(
+      '(2) Видео | ticket=SECRET - YouTube',
+      'https://youtube.com/watch?v=test&ticket=SECRET',
+    ),
+    'Видео на странице',
+  );
+});
+
+test('Known numeric metadata crosses summaries; unknown and invalid facts do not', () => {
+  const video = make('mp4', 'https://cdn.test/movie.mp4', {
+    browser: {
+      pageURL: 'https://page.test',
+      pageTitle: 'Видео',
+      mediaType: 'mp4',
+      capturedAt: '2026-10-13T00:00:00Z',
+    },
+    passive: {
+      width: 1920,
+      height: 1080,
+      duration: 120,
+      bitrate: 1000000,
+      rawHeader: 'SECRET',
+    },
+  });
+  const [summary] = summaries([video]);
+  assert.equal(metadataText(summary), '1920×1080 · 2:00 · ~14 МБ');
+  assert(!JSON.stringify(summary).includes('SECRET'));
+  assert.equal(
+    metadataText(
+      summaries([
+        {
+          ...video,
+          passive: { width: -1, height: 0, duration: NaN, bitrate: Infinity },
+        },
+      ])[0],
+    ),
+    '',
+  );
 });
 
 test('Exact and observed redirects group; master/child, signed refresh, hosts and frames alone do not', () => {

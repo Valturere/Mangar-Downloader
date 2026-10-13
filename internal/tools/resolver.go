@@ -2,9 +2,44 @@ package tools
 
 import (
 	"context"
+	"fmt"
 	"path/filepath"
 	"sync"
 )
+
+// ReadOnlyYtDlp verifies the current managed runtime without Detect, cleanup,
+// installs, PATH lookup, version subprocesses or writes to the user's profile.
+func ReadOnlyYtDlp(ctx context.Context, root string) (string, error) {
+	if !filepath.IsAbs(root) {
+		return "", fmt.Errorf("relative tools root")
+	}
+	current := filepath.Join(root, string(YtDlp), "current.json")
+	if err := directorySafe(root, current); err != nil {
+		return "", err
+	}
+	man, err := readManifest(current, YtDlp)
+	if err != nil {
+		return "", err
+	}
+	dir := filepath.Join(root, string(YtDlp), "versions", man.Identity)
+	for name, want := range man.Files {
+		if err := ctx.Err(); err != nil {
+			return "", err
+		}
+		if auxiliaryFile(name) {
+			continue
+		}
+		p := filepath.Join(dir, name)
+		if err := directorySafe(root, p); err != nil {
+			return "", err
+		}
+		got, err := fileHash(p)
+		if err != nil || got != want {
+			return "", fmt.Errorf("managed yt-dlp integrity")
+		}
+	}
+	return filepath.Join(dir, "yt-dlp.exe"), ctx.Err()
+}
 
 // Lease pins an immutable active version for a future engine invocation.
 // A job should retain it until ALL child processes have exited.

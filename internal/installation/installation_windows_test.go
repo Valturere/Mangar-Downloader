@@ -71,7 +71,7 @@ func TestNativeViewsIdentityMigrationAndOwnership(t *testing.T) {
 	b, _ := os.ReadFile(NativePath(dir))
 	var m NativeManifest
 	_ = json.Unmarshal(b, &m)
-	if len(m.AllowedOrigins) != 1 || m.AllowedOrigins[0] != distribution.Origin() || m.Path != filepath.Join(dir, "mangar-browser-host.exe") {
+	if len(m.AllowedOrigins) != 2 || m.AllowedOrigins[0] != distribution.Origin() || m.AllowedOrigins[1] != distribution.UnpackedOrigin || m.Path != filepath.Join(dir, "mangar-browser-host.exe") {
 		t.Fatal("wrong production manifest")
 	}
 	foreign := nativeLocations(prefix)[3]
@@ -106,8 +106,8 @@ func TestNativeViewsIdentityMigrationAndOwnership(t *testing.T) {
 		t.Fatal("known dev migration", e)
 	}
 	b, _ = os.ReadFile(NativePath(dir))
-	if strings.Contains(string(b), developmentOrigin) {
-		t.Fatal("dev origin leaked into production")
+	if strings.Contains(string(b), `C:\\dev\\`) || strings.Contains(string(b), `.local`) {
+		t.Fatal("dev helper path leaked into production")
 	}
 }
 func TestPreflightReinstallDowngradeForeignAndReparse(t *testing.T) {

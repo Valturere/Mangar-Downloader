@@ -1,6 +1,6 @@
 # Windows build и developer race toolchain
 
-`internal/buildinfo/VERSION` — единственный source версии приложения. После изменения выполнить `scripts/sync-version.ps1`; `-Check` проверяет Wails metadata. `scripts/build-production.ps1` создаёт app, store-only native host и updater в `build/bin/production`, проверяет Windows strings и runtime `--version`. `scripts/build-installer.ps1` создаёт NSIS installer; `scripts/release.ps1` готовит manifest/hashes/Release assets. Generated bin не коммитится. Dev wrapper сохраняет отдельный dev origin.
+`internal/buildinfo/VERSION` — единственный source числовой версии приложения. После изменения выполнить `scripts/sync-version.ps1`; `-Check` проверяет Wails metadata. `scripts/build-production.ps1` создаёт app, установленный native host и updater в `build/bin/production`, проверяет Windows strings и runtime `--version`. Установленный helper/manifest принимают только фиксированные CWS и исходный unpacked origins, без dev path. `scripts/build-installer.ps1` создаёт NSIS installer; `scripts/release.ps1 -ReleaseCandidate` использует tag `vX.Y.Z-rc.1`, prerelease и latest=false, не меняя numeric installer/updater contract. Generated bin не коммитится. Dev wrapper сохраняет отдельный dev origin и не нужен после обычной установки.
 
 Windows resources/manifest находятся в `build/windows`. Для нового checkout сначала выполнить baseline [VERIFICATION.md](../docs/VERIFICATION.md), который создаёт frontend assets/bindings.
 

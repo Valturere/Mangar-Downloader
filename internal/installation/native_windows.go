@@ -139,7 +139,7 @@ func registerAt(dir, prefix string) error {
 		}
 		locations[i] = location
 	}
-	b, e := json.MarshalIndent(NativeManifest{"ru.mangar.browser", "Mangar Downloader", filepath.Join(dir, "mangar-browser-host.exe"), "stdio", []string{distribution.Origin()}}, "", "  ")
+	b, e := json.MarshalIndent(NativeManifest{"ru.mangar.browser", "Mangar Downloader", filepath.Join(dir, "mangar-browser-host.exe"), "stdio", distribution.NativeOrigins()}, "", "  ")
 	if e != nil {
 		return e
 	}

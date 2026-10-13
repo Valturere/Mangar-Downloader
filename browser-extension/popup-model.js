@@ -1,4 +1,9 @@
-import { displayTitle, sizeText } from './format.js';
+import {
+  displayTitle,
+  sizeText,
+  durationText,
+  resolutionText,
+} from './format.js';
 
 // Relationship proof is an exact URL or a redirect chain observed by the browser.
 // Paths, query stripping, title, host, time and same-tab alone prove nothing.
@@ -17,6 +22,15 @@ function related(a, b) {
 }
 
 const ranks = { dash: 0, hls: 0, mp4: 1, webm: 1, video: 2 };
+// Candidates have already been grouped by observed URL/redirect relationships.
+// Prefer usable media; page URL is the fallback, never an extra download card.
+export function popupSelection(action, candidates) {
+  if (action.restricted) return { page: false, candidates: [] };
+  const usable = candidates.filter((candidate) => !candidate.blocked);
+  const visible = usable.length ? usable : action.available ? [] : candidates;
+  return { page: !!action.available && !visible.length, candidates: visible };
+}
+
 const blocked = (c) => !!(c.authorizationRequired || c.cookieIncomplete);
 function rank(a, b) {
   return (
@@ -50,6 +64,18 @@ export function summaries(candidates) {
     title: displayTitle(c.browser.pageTitle, c.browser.pageURL),
     blocked: blocked(c),
     iframe: c.frameId !== 0,
+    ...(resolutionText(c.passive?.width, c.passive?.height)
+      ? { width: c.passive.width, height: c.passive.height }
+      : {}),
+    ...(durationText(c.passive?.duration)
+      ? { duration: c.passive.duration }
+      : {}),
+    ...(durationText(c.passive?.duration) &&
+    Number.isFinite(c.passive?.bitrate) &&
+    c.passive.bitrate > 0 &&
+    c.passive.bitrate <= 1e10
+      ? { bitrate: c.passive.bitrate }
+      : {}),
     ...(sizeText(c.passive?.sizeBytes) &&
     !candidates.some(
       (other) =>

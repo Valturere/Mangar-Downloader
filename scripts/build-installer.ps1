@@ -21,7 +21,8 @@ try {
     if($FailureFixture) { $outputDir=Join-Path $taskRoot '.local/installer-fixtures';if($FailurePoint -eq 'registration'){$outputDir=Join-Path $outputDir 'after-registration'} }
     New-Item -ItemType Directory -Force $outputDir | Out-Null
     $output=Join-Path $outputDir "YTDLP-GUI-Mangar-Setup-$version-win-x64.exe"
-    $arguments=@('/V2',"/DAPP_VERSION=$version","/DPAYLOAD_DIR=$payload","/DWEBVIEW_BOOTSTRAPPER=$bootstrapper","/DINSTALLER_OUTPUT=$output")
+    # Unicode true controls the installer, not decoding of the UTF-8 NSIS input.
+    $arguments=@('/V2','/INPUTCHARSET','UTF8',"/DAPP_VERSION=$version","/DPAYLOAD_DIR=$payload","/DWEBVIEW_BOOTSTRAPPER=$bootstrapper","/DINSTALLER_OUTPUT=$output")
     if($FailureFixture) { if($FailurePoint -eq 'replacement'){$arguments+='/DMANGAR_TEST_FAIL_AFTER_REPLACE'}else{$arguments+='/DMANGAR_TEST_FAIL_AFTER_REGISTRATION'} }
     & $makensis @arguments (Join-Path $taskRoot 'build/windows/installer/project.nsi')
     if($LASTEXITCODE -ne 0) { throw 'NSIS installer build failed' }

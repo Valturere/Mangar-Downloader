@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { pageAction, transmit } from '../page.js';
+import { pageAction, transmit, supportCache } from '../page.js';
 
 test('Current HTTP(S) page action; service URLs and deceptive hosts', () => {
   for (const url of [
@@ -9,20 +9,20 @@ test('Current HTTP(S) page action; service URLs and deceptive hosts', () => {
     'http://127.0.0.1/watch',
   ])
     assert.deepEqual(pageAction({ url }), {
-      available: true,
-      label: 'Скачать в Mangar',
+      available: false,
+      eligible: true,
+      restricted: false,
       title: 'Видео на странице',
       host: new URL(url).hostname,
-      youtube: false,
     });
   for (const url of [
     'https://youtube.com/watch?v=test',
     'https://www.youtube.com/shorts/test',
     'https://youtu.be/test',
   ])
-    assert.equal(pageAction({ url }).youtube, true);
+    assert.equal(pageAction({ url }).eligible, true);
   assert.equal(
-    pageAction({ url: 'https://youtube.com.attacker.test/' }).youtube,
+    pageAction({ url: 'https://youtube.com.attacker.test/' }).available,
     false,
   );
   for (const url of [
@@ -41,6 +41,64 @@ test('Current HTTP(S) page action; service URLs and deceptive hosts', () => {
   ])
     assert.equal(pageAction({ url }).available, false);
   assert.equal(pageAction(undefined).available, false);
+  for (const url of [
+    'https://chatgpt.com/',
+    'https://unknown.example/watch',
+    'https://vimeo.com/76979871',
+  ]) {
+    const action = pageAction({ url });
+    assert.equal(
+      action.available,
+      false,
+      'HTTP or domain alone never enables fallback',
+    );
+    assert.equal(action.eligible, true);
+  }
+  for (const url of [
+    'https://chromewebstore.google.com/detail/example/id',
+    'https://chrome.google.com/webstore/detail/id',
+    'https://microsoftedge.microsoft.com/addons/detail/id',
+  ]) {
+    assert.equal(pageAction({ url }).restricted, true);
+    assert.equal(pageAction({ url }).eligible, false);
+  }
+});
+
+test('Support cache shares work for the exact URL; expires and retries failure', async () => {
+  let calls = 0,
+    time = 0,
+    fail = false;
+  const cache = supportCache(
+    async () => {
+      calls++;
+      if (fail) throw Error('SYNTHETIC_SECRET');
+      return { ok: true, supported: false };
+    },
+    () => time,
+    100,
+  );
+  assert.deepEqual(
+    await Promise.all([cache('https://a.test'), cache('https://a.test')]),
+    [false, false],
+  );
+  assert.equal(calls, 1);
+  await cache('https://a.test');
+  assert.equal(calls, 1);
+  time = 101;
+  await cache('https://a.test');
+  assert.equal(calls, 2);
+  await cache('https://a.test?token=OTHER');
+  assert.equal(calls, 3);
+  fail = true;
+  await assert.rejects(
+    cache('https://failed.test'),
+    /Page support unavailable/,
+  );
+  await assert.rejects(
+    cache('https://failed.test'),
+    /Page support unavailable/,
+  );
+  assert.equal(calls, 5);
 });
 
 test('Double click sends once; success stays disabled; failure permits explicit retry', async () => {
@@ -75,4 +133,15 @@ test('Double click sends once; success stays disabled; failure permits explicit 
   }));
   assert.equal(button.disabled, false);
   assert.equal(status.textContent, 'Mangar завершает работу');
+  for (const message of [
+    'Mangar не установлен или расширение не зарегистрировано.',
+    'Mangar не установлен или host не зарегистрирован. Проверьте регистрацию расширения',
+  ]) {
+    await transmit(button, status, async () => ({ ok: false, message }));
+    assert.equal(
+      status.textContent,
+      'Mangar Downloader не найден. Установите или запустите приложение.',
+    );
+    assert.equal(button.disabled, false);
+  }
 });

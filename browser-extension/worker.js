@@ -8,7 +8,7 @@ import {
   summaries,
 } from './capture.js';
 import { FragmentDiagnostic, DIAGNOSTIC_TTL } from './fragment-diagnostic.js';
-import { pageAction } from './page.js';
+import { pageAction, nativeBridge, nativeFailure } from './page.js';
 import { responseMetadata, displayTitle } from './format.js';
 import { groups } from './popup-model.js';
 const diagnostic = new FragmentDiagnostic();
@@ -27,6 +27,9 @@ function stopDiagnostic() {
   port?.disconnect();
 }
 const HOST = 'ru.mangar.browser';
+const native = nativeBridge((message) =>
+  chrome.runtime.sendNativeMessage(HOST, message),
+);
 let pageSending = false;
 const filter = { urls: ['http://*/*', 'https://*/*'] };
 chrome.webRequest.onBeforeRequest.addListener(
@@ -342,7 +345,11 @@ chrome.runtime.onMessage.addListener((message, sender, respond) => {
     sender.url !== chrome.runtime.getURL('popup.html')
   )
     return false;
-  if (message.type === 'page-info' || message.type === 'send-page') {
+  if (message.type === 'native-status') {
+    native.state().then(respond);
+    return true;
+  }
+  if (['page-info', 'page-support', 'send-page'].includes(message.type)) {
     const send = message.type === 'send-page';
     if (send && pageSending) {
       respond({ ok: false, message: 'Ссылка уже передаётся в Mangar.' });
@@ -356,12 +363,39 @@ chrome.runtime.onMessage.addListener((message, sender, respond) => {
           currentWindow: true,
         });
         const action = pageAction(tab);
+        if (message.type === 'page-info' || !action.eligible) {
+          if (send)
+            respond({
+              ok: false,
+              message: 'Эта страница не может быть передана в Mangar.',
+            });
+          else respond(action);
+          return;
+        }
+        const support = await native.support(tab.url);
+        const [current] = await chrome.tabs.query({
+          active: true,
+          currentWindow: true,
+        });
+        if (current?.id !== tab.id || current?.url !== tab.url) {
+          respond(
+            send
+              ? {
+                  ok: false,
+                  message: 'Страница изменилась. Откройте расширение снова.',
+                }
+              : pageAction(current),
+          );
+          return;
+        }
+        Object.assign(action, support);
         if (!send) {
           respond(action);
         } else if (!action.available) {
           respond({
             ok: false,
-            message: 'Эта страница не может быть передана в Mangar.',
+            message:
+              action.message || 'Эта страница не может быть передана в Mangar.',
           });
         } else {
           respond(
@@ -372,12 +406,12 @@ chrome.runtime.onMessage.addListener((message, sender, respond) => {
             }),
           );
         }
-      } catch {
+      } catch (error) {
         respond({
           ok: false,
-          message: send
-            ? 'Mangar не установлен или расширение не зарегистрировано.'
-            : 'Не удалось получить текущую страницу.',
+          ...(send
+            ? nativeFailure(error)
+            : { message: 'Не удалось получить текущую страницу.' }),
         });
       } finally {
         if (send) pageSending = false;
@@ -438,12 +472,8 @@ chrome.runtime.onMessage.addListener((message, sender, respond) => {
               (x) => !(group || [c]).some((member) => member.id === x.id),
             ),
           });
-      } catch {
-        respond({
-          ok: false,
-          message:
-            'Mangar не установлен или host не зарегистрирован. Проверьте регистрацию расширения',
-        });
+      } catch (error) {
+        respond(nativeFailure(error));
       }
     },
     () =>

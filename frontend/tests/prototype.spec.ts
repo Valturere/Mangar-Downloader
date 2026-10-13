@@ -282,7 +282,7 @@ for (const scale of [1, 1.25, 1.5]) {
       ).toHaveCount(3);
       await expect(
         page.getByRole('button', { name: 'Проверить обновления' }),
-      ).toHaveCount(0);
+      ).toHaveCount(1);
       await context.close();
     });
   }

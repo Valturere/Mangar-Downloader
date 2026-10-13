@@ -9,8 +9,11 @@ export function displayTitle(value, source = '') {
   const title = rawTitle.slice(0, 512);
   let decoded = rawTitle;
   let values = [];
+  let host = '';
   try {
-    values = [...new URL(source).searchParams.values()].filter(
+    const sourceURL = new URL(source);
+    host = sourceURL.hostname;
+    values = [...sourceURL.searchParams.values()].filter(
       (value) => value.length >= 4,
     );
   } catch {
@@ -40,7 +43,24 @@ export function displayTitle(value, source = '') {
   // A hostname/path offered as a title is not useful display metadata.
   if (!title || /^[\w.-]+\.[a-z]{2,}(?:[/:?#]|$)/i.test(title))
     return fallbackTitle;
-  return title;
+  let cleaned = title.replace(/^\(\d{1,4}\)\s+/, '').trim();
+  // Strip only a known site's own suffix. Keep channel names and SEO words
+  // inside the real title, and perform all secret checks before this cleanup.
+  if (
+    host === 'youtu.be' ||
+    host === 'youtube.com' ||
+    host.endsWith('.youtube.com')
+  )
+    cleaned = cleaned.replace(/\s+[-–—|]\s*YouTube\s*$/i, '').trim();
+  if (
+    ['animego.me', 'animego.org'].some(
+      (site) => host === site || host.endsWith(`.${site}`),
+    )
+  )
+    cleaned = cleaned.replace(/\s+[-–—|]\s*AnimeGO\s*$/i, '').trim();
+  if (!cleaned || /^(?:YouTube|AnimeGO|смотреть онлайн)$/i.test(cleaned))
+    return fallbackTitle;
+  return cleaned;
 }
 
 export function sizeText(bytes, estimated = false) {

@@ -9,17 +9,21 @@ export function renderPage(action) {
   document.querySelector('#page-title').textContent = displayTitle(
     action.title,
   );
-  const host = document.querySelector('#page-host');
-  host.textContent = action.host || '';
-  host.title = action.host || '';
-  button.textContent = action.label;
+  button.textContent = 'Скачать';
+  button.setAttribute(
+    'aria-label',
+    `Скачать: ${document.querySelector('#page-title').textContent}`,
+  );
   button.disabled = false;
+  const facts = document.querySelector('#page-facts');
+  facts.textContent = metadataText(action);
+  facts.hidden = !facts.textContent;
 }
 
 export function renderCandidates(candidates, status, send) {
   const list = document.querySelector('#candidates');
   list.replaceChildren();
-  for (const c of candidates) {
+  for (const [index, c] of candidates.entries()) {
     const row = document.createElement('article');
     const title = document.createElement('h2');
     title.className = 'video-title';
@@ -27,17 +31,26 @@ export function renderCandidates(candidates, status, send) {
     const metadata = metadataText(c);
     const facts = document.createElement('p');
     facts.className = 'media-facts';
-    facts.textContent = c.sizeBytes ? `Файл: ${metadata}` : metadata;
+    facts.textContent = metadata;
     facts.hidden = !metadata;
-    const technical = document.createElement('p');
-    technical.className = 'technical';
+    const technical = document.createElement('div');
+    technical.className = 'media-details';
     const type = document.createElement('span');
-    type.textContent = c.mediaType.toUpperCase();
-    const host = document.createElement('span');
-    host.className = 'host';
-    host.textContent = c.host;
-    host.title = c.host;
-    technical.append(type, document.createTextNode(' · '), host);
+    type.textContent =
+      c.mediaType === 'video'
+        ? 'Видео'
+        : c.mediaType === 'webm'
+          ? 'WebM'
+          : c.mediaType.toUpperCase();
+    technical.append(type, facts);
+    // An ordinal distinguishes otherwise identical summaries without guessing
+    // quality or exposing the resource's URL/host.
+    if (candidates.length > 1) {
+      const variant = document.createElement('span');
+      variant.className = 'variant-label';
+      variant.textContent = `Вариант ${index + 1}`;
+      technical.prepend(variant);
+    }
     const actions = document.createElement('div');
     actions.className = 'actions';
     const button = document.createElement('button');
@@ -48,7 +61,7 @@ export function renderCandidates(candidates, status, send) {
     if (c.blocked) {
       const warning = document.createElement('p');
       warning.className = 'capture-warning';
-      warning.textContent = 'Данные доступа недоступны. Запустите видео снова.';
+      warning.textContent = 'Видео недоступно. Запустите его снова.';
       row.append(warning);
     }
     button.addEventListener('click', () =>
@@ -63,7 +76,7 @@ export function renderCandidates(candidates, status, send) {
       ),
     );
     actions.append(button);
-    row.prepend(title, facts, technical);
+    row.prepend(title, technical);
     row.append(actions);
     list.append(row);
   }

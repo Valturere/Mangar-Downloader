@@ -20,6 +20,7 @@ test('Worker captures iframe with exact cookies, sends locally; tab/navigation c
   const queries = [];
   let activeTab = { id: 1, url: 'https://page.test/watch' };
   let nativeCalls = 0;
+  let helperMode = 'ready';
   let storageWrites = 0;
   globalThis.chrome = {
     webRequest: {
@@ -107,6 +108,20 @@ test('Worker captures iframe with exact cookies, sends locally; tab/navigation c
       sendNativeMessage: async (host, m) => {
         nativeCalls++;
         native = { host, m };
+        if (m.type === 'get_capabilities')
+          return helperMode === 'legacy'
+            ? { version: 1, ok: false, code: 'invalid' }
+            : {
+                ok: true,
+                protocol_version: 2,
+                capabilities: [
+                  'page_url',
+                  'media_capture',
+                  'page_support_check',
+                ],
+              };
+        if (m.type === 'page_support')
+          return { ok: true, supported: m.url.includes('youtube.com/watch') };
         return { ok: true, message: 'Передано в Mangar' };
       },
     },
@@ -176,7 +191,7 @@ test('Worker captures iframe with exact cookies, sends locally; tab/navigation c
   assert.equal(native.m.capture.redirectURLs, undefined);
   const writes = storageWrites,
     cookiesRead = queries.length;
-  assert.equal((await ask({ type: 'page-info' })).available, true);
+  assert.equal((await ask({ type: 'page-info' })).available, false);
   assert.equal(nativeCalls, 1); // Opening popup never sends a page.
   activeTab = {
     id: 2,
@@ -195,14 +210,48 @@ test('Worker captures iframe with exact cookies, sends locally; tab/navigation c
     type: 'page_url',
     url: activeTab.url,
   });
-  assert.equal(nativeCalls, 2);
+  assert.equal(nativeCalls, 4); // Handshake, support query, explicit handoff after media.
+  assert.equal((await ask({ type: 'page-support' })).available, true);
+  assert.equal(nativeCalls, 4); // Reopening uses RAM cache, not another process.
   assert.equal(storageWrites, writes);
   assert.equal(queries.length, cookiesRead);
   assert.equal(JSON.stringify(data).includes('PAGE_SECRET'), false);
   activeTab = { id: 1, url: 'chrome://settings' };
   assert.equal((await ask({ type: 'page-info' })).available, false);
   assert.equal((await ask({ type: 'send-page' })).ok, false);
-  assert.equal(nativeCalls, 2);
+  assert.equal(nativeCalls, 4);
+  activeTab = { id: 1, url: 'https://chatgpt.com/' };
+  assert.equal((await ask({ type: 'page-support' })).available, false);
+  assert.equal((await ask({ type: 'send-page' })).ok, false);
+  assert.equal(nativeCalls, 5); // Generic-only never creates a page_url job.
+  const realNow = Date.now;
+  Date.now = () => realNow() + 61000;
+  test.after(() => {
+    Date.now = realNow;
+  });
+  helperMode = 'legacy';
+  activeTab = { id: 1, url: 'https://page.test/watch' };
+  const legacyPage = await ask({ type: 'page-support' });
+  assert.equal(legacyPage.compatibility, 'legacy');
+  assert.equal(legacyPage.available, false);
+  assert.equal(
+    legacyPage.message,
+    'Обновите Mangar Downloader для загрузки видео с этой страницы.',
+  );
+  assert.equal((await ask({ type: 'send-page' })).ok, false);
+  listeners.send({ ...headers, requestId: 'legacy-media' });
+  listeners.response({
+    ...headers,
+    requestId: 'legacy-media',
+    statusCode: 200,
+  });
+  await new Promise((r) => setTimeout(r, 30));
+  const legacyMedia = (await ask({ type: 'list' })).candidates[0];
+  assert.equal((await ask({ type: 'send', id: legacyMedia.id })).ok, true);
+  assert.equal(native.m.type, 'media_capture');
+  assert.equal(native.m.version, 1);
+  assert.equal(native.m.capture.browser.cookies[0].value, 'secret');
+  Date.now = realNow;
   activeTab = { id: 1, url: 'https://page.test/watch' };
   listeners.send({ ...headers, requestId: 'next' });
   listeners.response({ ...headers, requestId: 'next', statusCode: 200 });

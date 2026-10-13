@@ -1,4 +1,4 @@
-# Mangar Downloader: NSIS owns replacement/rollback; helpers own only guards/registry.
+﻿# Mangar Downloader: NSIS owns replacement/rollback; helpers own only guards/registry.
 Unicode true
 RequestExecutionLevel user
 ManifestDPIAware true
@@ -300,7 +300,7 @@ failed:
   Quit
 done:
 SectionEnd
-Section /o "Ярлык на рабочем столе" DesktopShortcut
+Section /o "Создать ярлык на рабочем столе" DesktopShortcut
   ExecWait '"$PLUGINSDIR\mangar-updater.exe" --check-desktop-shortcut "$INSTDIR"' $0
   ${If} $0 == 0
     CreateShortCut "$DESKTOP\${PRODUCT_NAME}.lnk" "$INSTDIR\YTDLP-GUI-Mangar.exe" "" "$INSTDIR\YTDLP-GUI-Mangar.exe" 0

@@ -34,7 +34,7 @@ func TestHostRejectsWithoutStdoutNoiseOrSecrets(t *testing.T) {
 			if bytes.Contains(data, []byte("PRIVATE_SECRET")) {
 				t.Fatal("secret/noise")
 			}
-			if origin != hostOrigin {
+			if !acceptOrigin(origin) {
 				if len(data) != 0 {
 					t.Fatal("origin accepted")
 				}
@@ -45,5 +45,45 @@ func TestHostRejectsWithoutStdoutNoiseOrSecrets(t *testing.T) {
 				t.Fatal("not framed rejection")
 			}
 		}
+	}
+}
+
+func TestHostSupportQueryDoesNotForwardOrBootApp(t *testing.T) {
+	exe, _ := os.Executable()
+	var frame bytes.Buffer
+	if err := browserbridge.WriteFrame(&frame, browserbridge.Message{Version: 1, Type: "page_support", URL: "https://page.test/watch"}); err != nil {
+		t.Fatal(err)
+	}
+	cmd := exec.Command(exe, "-test.run=^TestHostProcess$")
+	cmd.Env = append(os.Environ(), "MANGAR_HELPER_TEST=1", "MANGAR_HELPER_ORIGIN="+hostOrigin, "LOCALAPPDATA="+t.TempDir())
+	cmd.Stdin = &frame
+	data, err := cmd.Output()
+	if err != nil {
+		t.Fatal("host query failed")
+	}
+	var r browserbridge.Reply
+	if browserbridge.ReadFrame(bytes.NewReader(data), &r) != nil || r.OK || r.Code != "support_unavailable" {
+		t.Fatal("support query was not handled locally")
+	}
+}
+
+func TestHostCapabilitiesWithoutToolsOrApplication(t *testing.T) {
+	exe, _ := os.Executable()
+	var input bytes.Buffer
+	if err := browserbridge.WriteFrame(&input, browserbridge.Message{Version: 1, Type: "get_capabilities"}); err != nil {
+		t.Fatal(err)
+	}
+	cmd := exec.Command(exe, "-test.run=^TestHostProcess$")
+	cmd.Env = append(os.Environ(), "MANGAR_HELPER_TEST=1", "MANGAR_HELPER_ORIGIN="+hostOrigin, "LOCALAPPDATA="+t.TempDir())
+	cmd.Stdin = &input
+	var stderr bytes.Buffer
+	cmd.Stderr = &stderr
+	data, err := cmd.Output()
+	if err != nil || stderr.Len() != 0 {
+		t.Fatal("noisy capabilities process")
+	}
+	var reply browserbridge.Reply
+	if browserbridge.ReadFrame(bytes.NewReader(data), &reply) != nil || !reply.OK || reply.ProtocolVersion != 2 || len(reply.Capabilities) != 3 {
+		t.Fatal("capabilities require app/tools")
 	}
 }

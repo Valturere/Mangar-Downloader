@@ -14,3 +14,19 @@ func TestFixedStoreIdentity(t *testing.T) {
 		t.Fatal("unsafe store URL")
 	}
 }
+
+func TestInstalledNativeOriginsAreExactlyStoreAndUnpacked(t *testing.T) {
+	for _, origin := range NativeOrigins() {
+		if !NativeOriginAllowed(origin) {
+			t.Fatal("registered origin rejected")
+		}
+	}
+	for _, origin := range []string{"https://youtube.com/", Origin() + "extra", UnpackedOrigin + "?query", "chrome-extension://untrusted/", ""} {
+		if NativeOriginAllowed(origin) {
+			t.Fatal("untrusted origin accepted")
+		}
+	}
+	if len(NativeOrigins()) != 2 {
+		t.Fatal("unexpected native authority")
+	}
+}

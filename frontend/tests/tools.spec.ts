@@ -47,6 +47,15 @@ async function setup(page: Page, tools: Tool[], reject = false) {
         go: {
           main: {
             App: {
+              UpdateSnapshot: () =>
+                Promise.resolve({
+                  revision: 1,
+                  phase: 'idle',
+                  busy: false,
+                  error: '',
+                  message: '',
+                  installSupported: true,
+                }),
               SettingsSnapshot: () => Promise.resolve({ closeToTray: true }),
               SetCloseToTray: (value: boolean) =>
                 Promise.resolve({ closeToTray: value }),
@@ -123,7 +132,9 @@ test('Компоненты: auxiliary repair сохраняет installed и в�
   ]);
   await emit(page, statuses('installed'), false, 2);
   await expect(
-    page.getByRole('button', { name: 'Проверить обновления' }),
+    page
+      .getByRole('region', { name: 'Компоненты' })
+      .getByRole('button', { name: 'Проверить обновления' }),
   ).toBeVisible();
 });
 
@@ -153,7 +164,9 @@ test('Компоненты: установка, живой progress, отказ 
   await emit(page, statuses('installed'), false, 4);
   await expect(page.getByText('Установлен · 2.9.7')).toHaveCount(3);
   await expect(
-    page.getByRole('button', { name: 'Проверить обновления' }),
+    page
+      .getByRole('region', { name: 'Компоненты' })
+      .getByRole('button', { name: 'Проверить обновления' }),
   ).toBeEnabled();
   await emit(page, statuses('not_installed'), false, 1); // stale startup response
   await expect(page.getByText('Установлен · 2.9.7')).toHaveCount(3);
@@ -163,7 +176,10 @@ test('Компоненты: update/check/retry и безопасная ошиб�
   page,
 }) => {
   await setup(page, statuses('installed'));
-  await page.getByRole('button', { name: 'Проверить обновления' }).click();
+  await page
+    .getByRole('region', { name: 'Компоненты' })
+    .getByRole('button', { name: 'Проверить обновления' })
+    .click();
   expect(await page.evaluate(() => Reflect.get(window, 'toolCalls'))).toEqual([
     'check',
   ]);
@@ -245,7 +261,9 @@ for (const scale of [1, 1.25, 1.5]) {
 test('Keyboard focus сохраняется в Windows high contrast', async ({ page }) => {
   await setup(page, statuses('installed'));
   await page.emulateMedia({ forcedColors: 'active' });
-  const button = page.getByRole('button', { name: 'Проверить обновления' });
+  const button = page
+    .getByRole('region', { name: 'Компоненты' })
+    .getByRole('button', { name: 'Проверить обновления' });
   // Enter keyboard modality from the preceding readonly folder field.
   await button.focus();
   await page.keyboard.press('Shift+Tab');

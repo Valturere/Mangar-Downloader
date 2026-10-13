@@ -35,10 +35,41 @@ type Message struct {
 	Capture *Capture `json:"capture,omitempty"`
 }
 type Reply struct {
-	Version int    `json:"version"`
-	OK      bool   `json:"ok"`
-	Code    string `json:"code"`
-	Message string `json:"message"`
+	Version         int      `json:"version"`
+	OK              bool     `json:"ok"`
+	Code            string   `json:"code"`
+	Message         string   `json:"message"`
+	Supported       *bool    `json:"supported,omitempty"`
+	ProtocolVersion int      `json:"protocol_version,omitempty"`
+	Capabilities    []string `json:"capabilities,omitempty"`
+}
+
+// Capabilities describe helper features; version-1 download envelopes remain
+// compatible with the installed desktop application's existing IPC protocol.
+func ValidateCapabilities(m Message) error {
+	if m.Version != Version || m.Type != "get_capabilities" || m.URL != "" || m.Capture != nil {
+		return errors.New("invalid capabilities query")
+	}
+	return nil
+}
+
+func Capabilities() Reply {
+	return Reply{Version: Version, OK: true, Code: "capabilities", ProtocolVersion: 2,
+		Capabilities: []string{"page_url", "media_capture", "page_support_check"}}
+}
+
+// A support query is host-only. Validate deliberately continues to reject it
+// on the application IPC boundary: it must never become a download job.
+func ValidatePageSupport(m Message) (Message, error) {
+	if m.Version != Version || m.Type != "page_support" || m.Capture != nil {
+		return Message{}, errors.New("invalid support query")
+	}
+	source, err := ValidatePageURL(m.URL)
+	if err != nil {
+		return Message{}, errors.New("invalid support URL")
+	}
+	m.URL = source
+	return m, nil
 }
 
 func Success() Reply {
@@ -46,6 +77,9 @@ func Success() Reply {
 }
 func Failure(code string) Reply {
 	text := map[string]string{"invalid": "Данные видео отклонены", "authorization": "Поток требует Authorization; этот способ пока не поддерживается", "unavailable": "Mangar не удалось запустить или он не отвечает", "closing": "Mangar завершает работу", "expired": "Данные браузера устарели. Запустите видео снова", "busy": "Слишком много ожидающих видео. Выберите папку в Mangar", "host": "Mangar не установлен или host не зарегистрирован"}[code]
+	if code == "support_unavailable" {
+		text = "Не удалось проверить страницу. Проверьте установку yt-dlp в Mangar."
+	}
 	if text == "" {
 		text = "Не удалось передать видео в Mangar"
 	}

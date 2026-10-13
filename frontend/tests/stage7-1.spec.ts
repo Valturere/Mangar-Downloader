@@ -22,6 +22,15 @@ test('Настройка закрытия подтверждается backend, 
       go: {
         main: {
           App: {
+            UpdateSnapshot: () =>
+              Promise.resolve({
+                revision: 1,
+                phase: 'idle',
+                busy: false,
+                error: '',
+                message: '',
+                installSupported: true,
+              }),
             DownloadSnapshot: () =>
               Promise.resolve({
                 revision: 0,

@@ -26,5 +26,12 @@ func load() struct {
 }
 func ExtensionID() string { return identity.ID }
 func Origin() string      { return "chrome-extension://" + identity.ID + "/" }
-func StoreURL() string    { return "https://chromewebstore.google.com/detail/mangar/" + identity.ID }
-func PrivacyURL() string  { return identity.PrivacyURL }
+
+// The unchanged repository manifest key identifies the explicitly loaded
+// unpacked extension. Only these two fixed extension identities are trusted.
+const UnpackedOrigin = "chrome-extension://cjkbicomjehhggchaejioiehbkfoocih/"
+
+func NativeOrigins() []string                { return []string{Origin(), UnpackedOrigin} }
+func NativeOriginAllowed(origin string) bool { return origin == Origin() || origin == UnpackedOrigin }
+func StoreURL() string                       { return "https://chromewebstore.google.com/detail/mangar/" + identity.ID }
+func PrivacyURL() string                     { return identity.PrivacyURL }
