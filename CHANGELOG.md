@@ -4,9 +4,9 @@
 
 ## [Unreleased]
 
-PUBLIC repository начинается с проверенного source snapshot. Старый private archive сохраняется. Stage 9 продолжается; CWS-installed acceptance/clean Windows/final regression ещё открыты.
+Chrome Web Store: расширение 1.0.1 опубликовано для всех. Проверена настоящая Store-установка: передача страницы, загрузка обнаруженного MP4 и запуск установленного Mangar. Новые popup/icons в source относятся к будущему обновлению Store. Clean Windows/VM и следующий stable pass ещё открыты.
 
-Подготовлен RC1 app version 1.0.0 для CWS companion review; final v1.0.0 ещё не выпущен. Реальный anonymous update 0.9.0 → public0.9.2 пройден с сохранением settings/tools/MP4 и production Native Messaging.
+Подготовлен v1.0.2-rc.2 с исправлением installer и числовой app version 1.0.2; публикация требует проверки новых артефактов. Предыдущий v1.0.2-rc.1 сохранён без изменений. Установка более старой версии запрещена.
 
 ### Изменено
 - Публичный source repository очищен от внутренних инструкций агентов; правила проверки доступны в обычной developer-документации.
@@ -27,6 +27,7 @@ PUBLIC repository начинается с проверенного source snapsh
 - Popup Chrome/Edge 0.8.0: 380 px, title первичен, system light/dark, conservative exact/observed-redirect grouping, пассивный direct resource size. Нет probes, новых permissions/content scripts или frontend framework.
 
 ### Исправлено
+- Запуск через checkbox на странице Finish передан установленному helper: он подтверждает parent процесса, ждёт успешного завершения installer и освобождения install guard, проверяет установленную версию и запускает GUI. Защита от обычного запуска во время установки сохранена.
 - Генерация Wails bindings больше не затрагивает production mutex/IPC. Malformed/null metadata не вызывает panic. In-flight iframe captures не восстанавливаются после navigation. Query-title и reserved-device publication security cases закрыты.
 
 ### Ранее добавлено

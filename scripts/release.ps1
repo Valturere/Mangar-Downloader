@@ -1,4 +1,4 @@
-param([switch]$Publish,[switch]$UpdateTest,[switch]$ReleaseCandidate,[string]$GateRecord='')
+param([switch]$Publish,[switch]$UpdateTest,[switch]$ReleaseCandidate,[ValidateRange(1,999)][int]$RCNumber=1,[string]$GateRecord='')
 $ErrorActionPreference='Stop'
 $releaseRoot=[IO.Path]::GetFullPath((Join-Path $PSScriptRoot '..'))
 Push-Location $releaseRoot
@@ -10,6 +10,7 @@ try {
     $sourceStatus=git status --porcelain=v1
     if($LASTEXITCODE -ne 0 -or $sourceStatus){throw 'Release requires clean committed source'}
     if($UpdateTest -and $ReleaseCandidate){throw 'UpdateTest and ReleaseCandidate are mutually exclusive'}
+    if(!$ReleaseCandidate -and $RCNumber -ne 1){throw 'RCNumber requires ReleaseCandidate'}
     if($UpdateTest -and $version -notmatch '^0\.9\.\d+$'){throw 'Update-test release is restricted to 0.9.x'}
     if(!$UpdateTest -and !$ReleaseCandidate -and $version -ne '1.0.0'){throw 'First final release must be 1.0.0'}
     if($Publish){
@@ -18,6 +19,11 @@ try {
         if($gates.schema -ne 1 -or $gates.source_commit -cne $commit -or $gates.version -cne $version){throw 'Verification record does not match this source/version'}
         foreach($gate in @('baseline','installer','native_launch','first_run_tools','real_mp4','tray_exit','uninstall','preservation')){if($gates.$gate -cne 'PASS'){throw "Unclosed release gate: $gate"}}
         if($ReleaseCandidate -and $gates.real_upgrade -cne 'PASS'){throw 'RC requires verified upgrade'}
+        if($ReleaseCandidate -and $RCNumber -ge 2){
+            foreach($gate in @('finish_launch','finish_no_launch','install_guard','equal_version_reinstall','cws_page_url','cws_media_capture','cws_auto_launch')){
+                if($gates.$gate -cne 'PASS'){throw "Unclosed RC gate: $gate"}
+            }
+        }
         if(!$UpdateTest -and !$ReleaseCandidate){foreach($gate in @('clean_windows','real_upgrade','cws_native','full_final')){if($gates.$gate -cne 'PASS'){throw "Unclosed final gate: $gate"}}}
         $repository=gh repo view Valturere/Mangar-Downloader --json visibility,nameWithOwner | ConvertFrom-Json
         if($LASTEXITCODE -ne 0 -or $repository.visibility -cne 'PUBLIC' -or $repository.nameWithOwner -cne 'Valturere/Mangar-Downloader'){throw 'Release repository must be the approved public repository'}
@@ -46,7 +52,7 @@ try {
         $existing=Get-Content -LiteralPath $manifestFile -Raw | ConvertFrom-Json
         if($existing.source_commit -cne $commit -or $existing.version -cne $version -or $existing.installer_sha256 -cne $sha -or $existing.installer_size -ne $installer.Length -or $existing.extension_store_id -cne $manifest.extension_store_id -or $existing.extension_version -cne $extension.version -or $existing.installer_asset -cne $installerName -or $existing.schema -ne 1 -or $existing.channel -cne 'stable' -or $existing.architecture -cne 'win-x64'){throw 'Verified manifest does not match artifacts'}
     }else{[IO.File]::WriteAllText($manifestFile,($manifest|ConvertTo-Json)+"`n",[Text.UTF8Encoding]::new($false))}
-    $zipName=if($ReleaseCandidate){"Mangar-Browser-Extension-$($extension.version)-source-$version-rc.1.zip"}else{"Mangar-Browser-Extension-$($extension.version).zip"}
+    $zipName=if($ReleaseCandidate){"Mangar-Browser-Extension-$($extension.version)-source-$version-rc.$RCNumber.zip"}else{"Mangar-Browser-Extension-$($extension.version).zip"}
     $zipSource=Join-Path $releaseRoot "dist/release/$($extension.version)/$zipName"
     $zipTarget=Join-Path $output $zipName
     if($ReleaseCandidate){
@@ -61,9 +67,9 @@ try {
     $sums=($assets|ForEach-Object{"$((Get-FileHash -LiteralPath $_).Hash.ToLowerInvariant())  $([IO.Path]::GetFileName($_))"}) -join "`n"
     $sumFile=Join-Path $output 'SHA256SUMS.txt'
     [IO.File]::WriteAllText($sumFile,$sums+"`n",[Text.UTF8Encoding]::new($false))
-    $tag=if($ReleaseCandidate){"v$version-rc.1"}else{"v$version"}
-    $title=if($UpdateTest){"Тест обновления: Mangar Downloader $version"}elseif($ReleaseCandidate){"Кандидат выпуска: Mangar Downloader $version (RC1)"}else{"Mangar Downloader $version"}
-    $notes=@("$title","",$(if($UpdateTest){'Временный public update-test predecessor/target Stage 9. Не финальный accepted release.'}elseif($ReleaseCandidate){'Тестовый pre-release установленного companion app/helper: capability handshake и проверка specialized yt-dlp extractor. Не stable/latest; updater не предлагает prerelease автоматически.'}else{'Первый Windows installer release.'}),"",'Windows10/11 x64, per-user NSIS. Settings/tools/downloads сохраняются при upgrade. Обновления проверяются анонимно; GitHub account/token не нужен.',"",$(if($ReleaseCandidate){'Для тестирования распакуйте source ZIP и загрузите папку browser-extension через Load unpacked. Установленный helper работает без dev-host. Chrome Web Store listing/review/package не обновлялись.'}else{'Расширение устанавливается из Chrome Web Store. ZIP приложен только как архив для разработки, не для обычной установки.'}),"",'Installer пока без Authenticode подписи; поддельный сертификат не используется.',"","Source: $commit","Installer SHA-256: $sha") -join "`n"
+    $tag=if($ReleaseCandidate){"v$version-rc.$RCNumber"}else{"v$version"}
+    $title=if($UpdateTest){"Тест обновления: Mangar Downloader $version"}elseif($ReleaseCandidate){"Кандидат выпуска: Mangar Downloader $version (RC$RCNumber)"}else{"Mangar Downloader $version"}
+    $notes=@("$title","",$(if($UpdateTest){'Временный публичный релиз для проверки обновлений.'}elseif($ReleaseCandidate){'Предварительный выпуск; обычный updater не предлагает его автоматически.'}else{'Выпуск приложения для Windows.'}),"",$(if($ReleaseCandidate -and $RCNumber -ge 2){'Исправлен запуск Mangar после завершения установщика: helper ждёт успешного выхода installer и освобождения install guard.'}),"",'Windows 10/11 x64. Фиксированная установка для текущего пользователя: %LOCALAPPDATA%\Programs\Mangar. Настройки, управляемые компоненты и готовые файлы сохраняются при переустановке. Обновления проверяются анонимно; учётная запись GitHub и токен не нужны.',"",'Расширение 1.0.1 уже опубликовано в Chrome Web Store: https://chromewebstore.google.com/detail/mangar/paimennadokhgjdpgilfcebameolopbm. Пакет и listing в этом выпуске не менялись. Source ZIP — архив для разработки; новые popup/icons в нём ещё не опубликованы в Store.',"",$(if($Publish -and $ReleaseCandidate -and $RCNumber -ge 2){'Проверена Store-версия 1.0.1: передача страницы, полная загрузка небольшого MP4 и запуск установленного Mangar через production Native Messaging.'}),"",'Установщик пока без Authenticode подписи.',"","Исходный commit: $commit","SHA-256 установщика: $sha") -join "`n"
     $notesFile=Join-Path $output 'RELEASE_NOTES.md'
     [IO.File]::WriteAllText($notesFile,$notes+"`n",[Text.UTF8Encoding]::new($false))
     if($Publish){

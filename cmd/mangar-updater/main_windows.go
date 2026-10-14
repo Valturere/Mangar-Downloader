@@ -28,6 +28,15 @@ func main() {
 		e = credentials.New("YTDLPGUIMangar/GitHubUpdates").Remove() // Legacy migration cleanup only; never reads the secret.
 	case len(args) == 2 && args[0] == "--apply":
 		e = updates.Apply(args[1])
+	case len(args) == 3 && args[0] == "--launch-after-install":
+		var parent uint64
+		parent, e = strconv.ParseUint(args[1], 10, 32)
+		if e == nil {
+			e = installation.LaunchAfterInstall(uint32(parent), args[2])
+		}
+		if e != nil {
+			_ = os.WriteFile(args[2], []byte("[launch]\r\nstatus=failed\r\n"), 0600)
+		}
 	case len(args) == 3 && args[0] == "--preflight":
 		e = installation.Preflight(args[1], args[2])
 	case len(args) == 2 && args[0] == "--registry-preflight":

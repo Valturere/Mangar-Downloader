@@ -56,7 +56,7 @@ export function ExtensionSection() {
         Установить расширение
       </button>
       <p className="field-hint">
-        Chrome Web Store: расширение пока не опубликовано.
+        Расширение опубликовано в Chrome Web Store. Установка необязательна.
       </p>
       {error && (
         <p className="field-error" role="alert">

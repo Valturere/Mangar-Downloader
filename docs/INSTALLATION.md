@@ -1,6 +1,6 @@
 # Установка Mangar Downloader
 
-Windows 10/11 x64, per-user NSIS без обязательных прав администратора. Папка `%LOCALAPPDATA%\Programs\Mangar`: app/browser-host/updater/uninstaller/metadata. Start Menu shortcut; Desktop shortcut опционален. Установщик обнаруживает WebView2 и при отсутствии запускает официальный Microsoft bootstrapper с проверкой результата; при uninstall WebView2 сохраняется.
+Windows 10/11 x64, per-user NSIS без обязательных прав администратора. Папка `%LOCALAPPDATA%\Programs\Mangar`: app/browser-host/updater/uninstaller/metadata. Для 1.x это фиксированный путь; выбор каталога сейчас не предусмотрен. Это решение installation/update scope, а не требование Chrome Native Messaging к расположению приложения. Start Menu shortcut; Desktop shortcut опционален. Установщик обнаруживает WebView2 и при отсутствии запускает официальный Microsoft bootstrapper с проверкой результата; при uninstall WebView2 сохраняется.
 
 Данные остаются в `%LOCALAPPDATA%\YTDLPGUIMangar`: `data`, `tools`, `logs`, `temp`, `updates`. Go/Node/Git/Wails для работы установленного приложения не нужны. First run: выбрать destination, установить управляемые yt-dlp, FFmpeg/ffprobe, Deno. Лучшие потоки, MP4, max 3/N8; очередь только RAM.
 
@@ -8,6 +8,8 @@ NSIS владеет replacement/journal/rollback. Guard блокирует app/�
 
 Upgrade и same-version reinstall сохраняют settings/tools/logs/downloads. Uninstall удаляет только собственные binaries/ярлыки/registry и legacy GitHub credential. Неизвестные файлы и чужие ярлыки сохраняются; рекурсивное удаление пользовательских данных отсутствует. Silent /S: 0 success, 10 busy/guard, 11 WebView2, 12 transaction/preflight/registration/verification, 64 OS, 65 architecture; интерактивная отмена — 1.
 
-Production Native Messaging: HKCU Chrome/Edge registry 32/64, fixed helper path, только `chrome-extension://paimennadokhgjdpgilfcebameolopbm/`. Registry удаляется лишь при совпадении manifest path. Расширение optional, установка через PUBLIC Chrome Web Store после публикации. [Dev identity](BROWSER_EXTENSION_DEV.md) используется отдельно.
+В новых исходниках запуск на странице Finish передаётся установленному `mangar-updater.exe --launch-after-install`. Helper подтверждает PID фактического parent и время создания процесса, удерживает его handle и сообщает готовность NSIS. После успешного завершения parent, освобождения install guard и проверки установленной версии helper запускает GUI один раз. Незавершённая установка по-прежнему блокирует обычный запуск; фиксированной задержки для запуска нет. Helper работает вне `$PLUGINSDIR`, поэтому не мешает его очистке. В опубликованном v1.0.2-rc.1 это исправление ещё отсутствует.
+
+Production Native Messaging: HKCU Chrome/Edge registry 32/64, fixed helper path, production origin `chrome-extension://paimennadokhgjdpgilfcebameolopbm/` и отдельный fixed repository unpacked origin. Registry удаляется лишь при совпадении manifest path. Расширение необязательно, [версия 1.0.1 опубликована в Chrome Web Store](https://chromewebstore.google.com/detail/mangar/paimennadokhgjdpgilfcebameolopbm). [Dev identity](BROWSER_EXTENSION_DEV.md) используется отдельно и не доказывает CWS-installed acceptance.
 
 Обновления приложения — anonymous PUBLIC GitHub Releases. Подробности: [UPDATES.md](UPDATES.md). Clean Windows без готового WebView2 и настоящий CWS-installed extension требуют отдельного native acceptance; изолированный LOCALAPPDATA на текущей машине не считается чистой VM.

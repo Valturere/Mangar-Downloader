@@ -310,7 +310,23 @@ Section /o "Создать ярлык на рабочем столе" DesktopSho
   ${EndIf}
 SectionEnd
 Function LaunchApp
-  Exec '"$INSTDIR\YTDLP-GUI-Mangar.exe"'
+  # The installed helper acknowledges a retained parent handle before Finish
+  # returns. It launches only after NSIS exits and releases its install gate.
+  Exec '"$INSTDIR\mangar-updater.exe" --launch-after-install $ParentPID "$PLUGINSDIR\launch.ini"'
+  StrCpy $Counter 0
+  ${Do}
+    ReadINIStr $GuardState "$PLUGINSDIR\launch.ini" "launch" "status"
+    ${If} $GuardState == "ready"
+      ${ExitDo}
+    ${EndIf}
+    IntOp $Counter $Counter + 1
+    ${If} $GuardState == "failed"
+    ${OrIf} $Counter > 100
+      MessageBox MB_OK|MB_ICONEXCLAMATION "Не удалось подготовить запуск. Откройте Mangar Downloader через ярлык после завершения установщика."
+      ${ExitDo}
+    ${EndIf}
+    Sleep 100
+  ${Loop}
 FunctionEnd
 Function OpenStore
   ExecShell "open" "${STORE_URL}"
