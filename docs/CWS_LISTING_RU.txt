@@ -11,7 +11,7 @@ Item ID: paimennadokhgjdpgilfcebameolopbm
 Короткое описание (из manifest): Передача текущей страницы или медиапотока в локальный Mangar Downloader для скачивания
 Категория: Tools / Инструменты (текущая публичная категория; сохраняется).
 Язык: русский.
-Подробное описание — вставьте следующий текст:
+Для обновления 1.0.2 меняются пакет и screenshots. Корректные текущие title, short/full description, privacy policy, category и distribution сохраняются. Ниже — справочный текст listing, без необходимости повторного ввода:
 
 Mangar Downloader связывает Chrome с локальным Windows-приложением Mangar Downloader. Откройте расширение и нажмите «Скачать», чтобы передать поддерживаемую страницу или выбранное видео для скачивания. Обнаруженные HLS/DASH и прямые MP4/WebM имеют приоритет; при нескольких потоках можно выбрать нужный вариант. Требуется установленное приложение Mangar Downloader с Native Messaging host.
 
@@ -20,11 +20,11 @@ Mangar Downloader связывает Chrome с локальным Windows-при
 Расширение и companion приложение являются публичным продуктом. Установка и последующие обновления расширения выполняются через Chrome Web Store.
 
 Изображения для обновления:
-Store icon: icon-128.png (источник browser-extension/icons/128.png).
-Screenshots: 01-supported-page.png, 02-detected-media.png, 03-privacy-info.png. Все три — настоящие Chrome captures 1.0.2, PNG 640×400. Старые screenshots с большой privacy-секцией заменить всеми тремя новыми файлами.
+Package icons 16/32/48/128 проверены; отдельная замена Store icon для этого обновления не требуется.
+Screenshots на рабочем столе: 01-page.png, 02-media.png, 03-privacy.png. В source: docs/cws/1.0.2/01-supported-page.png, 02-detected-media.png, 03-privacy-info.png. Все три — новые настоящие Chrome captures 1.0.2 с принятым header ⓘ и click-toggle privacy, PNG 640×400 без alpha. Старые screenshots с большой privacy-секцией заменить всеми тремя новыми файлами.
 Формат: PNG или JPEG, 1280×800 или 640×400, от 1 до 5 изображений. Требования проверены 15 октября 2026 года: https://developer.chrome.com/docs/webstore/images . Предпочтительно три реальных снимка без личных данных и diagnostic UI.
 Существующие small promotional tile и необязательный marquee сохраняются, если они не показывают устаревший интерфейс.
-`node scripts/cws-store-assets.mjs` экспортирует проверенные assets из docs/cws/1.0.2/ в dist/release/1.0.2/store/. После штатной clean-source упаковки `pwsh -File scripts/prepare-cws-desktop.ps1` копирует ZIP, icon, три screenshots и этот текст в отдельную папку «Mangar Downloader - Chrome Web Store 1.0.2» на рабочем столе.
+`node scripts/cws-store-assets.mjs` экспортирует проверенные assets из docs/cws/1.0.2/ в dist/release/1.0.2/store/. Финальная папка «Mangar Downloader - Chrome Web Store 1.0.2» на рабочем столе содержит только ZIP, три screenshots и короткую ИНСТРУКЦИЯ.txt. Старый prepare-cws-desktop.ps1 создаёт прежний расширенный комплект и для этой ручной передачи не используется.
 Сохраните раздел. Google Analytics не настраивать.
 
 3. КОНФИДЕНЦИАЛЬНОСТЬ
