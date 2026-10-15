@@ -4,8 +4,10 @@ function Assert-MangarReleaseManifest($Manifest, [string]$Version, [string]$Comm
     foreach ($key in $expected.Keys) {
         if ($null -eq $Manifest.$key -or [string]$Manifest.$key -cne [string]$expected[$key]) { throw "Manifest field mismatch: $key" }
     }
+    # PowerShell 7.5+ converts ISO JSON timestamps to DateTime by default.
+    $timestamp=if($Manifest.created_at -is [DateTime]){$Manifest.created_at.ToUniversalTime().ToString('yyyy-MM-ddTHH:mm:ssZ')}else{[string]$Manifest.created_at}
     $stamp=[DateTimeOffset]::MinValue
-    if (![DateTimeOffset]::TryParse($Manifest.created_at, [ref]$stamp) -or $Manifest.created_at -notmatch '^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}Z$') { throw 'Invalid manifest timestamp' }
+    if (![DateTimeOffset]::TryParse($timestamp, [ref]$stamp) -or $timestamp -notmatch '^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}Z$') { throw 'Invalid manifest timestamp' }
     if (@($Manifest.PSObject.Properties.Name).Count -ne 11 -or $Commit -cnotmatch '^[a-f0-9]{40}$' -or $InstallerSHA256 -cnotmatch '^[a-f0-9]{64}$' -or $InstallerSize -le 0 -or $InstallerSize -gt 268435456) { throw 'Invalid manifest schema/identity/size' }
 }
 function Assert-MangarReleaseGates($Record, [string]$Version, [string]$Commit, [string]$InstallerSHA256, [string]$ManifestSHA256, [string]$SumsSHA256) {
