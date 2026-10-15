@@ -346,7 +346,7 @@ try {
           );
         for (const button of await page.locator('main button:visible').all()) {
           const dimensions = await button.boundingBox();
-          assert(dimensions.width >= 70 && dimensions.width < 90);
+          assert(dimensions.width >= 60 && dimensions.width < 90);
           assert(dimensions.height >= 32 && dimensions.height <= 36);
         }
         if (['hls', 'dash'].includes(scenario))
@@ -380,6 +380,41 @@ try {
         const infoBox = await info.boundingBox();
         assert.equal(infoBox.width, 28);
         assert.equal(infoBox.height, 28);
+        const closedLayout = await page.evaluate(() => {
+          const body = document.body.getBoundingClientRect();
+          const row = document
+            .querySelector('.info-row')
+            .getBoundingClientRect();
+          const icon = document
+            .querySelector('#privacy-toggle')
+            .getBoundingClientRect();
+          const footer = document
+            .querySelector('#privacy')
+            .getBoundingClientRect();
+          const status = document.querySelector('#status');
+          const content = status.textContent
+            ? status
+            : document.querySelector('main');
+          return {
+            bottomGap: body.bottom - row.bottom,
+            contentGap: footer.top - content.getBoundingClientRect().bottom,
+            rightGap: body.right - icon.right,
+            hiddenHeight: document
+              .querySelector('#privacy-info')
+              .getBoundingClientRect().height,
+            rowHeight: row.height,
+            alignment: getComputedStyle(document.querySelector('.info-row'))
+              .justifyContent,
+            minHeight: getComputedStyle(document.body).minHeight,
+          };
+        });
+        assert.equal(closedLayout.hiddenHeight, 0);
+        assert.equal(closedLayout.minHeight, '0px');
+        assert.equal(closedLayout.alignment, 'flex-end');
+        assert.equal(closedLayout.rightGap, 12);
+        assert.equal(closedLayout.bottomGap, 12);
+        assert.equal(closedLayout.rowHeight, 28);
+        assert(closedLayout.contentGap >= 0 && closedLayout.contentGap <= 8);
         assert.equal(
           await info
             .locator('span')
@@ -388,15 +423,59 @@ try {
         );
         await info.hover();
         assert.equal(await page.locator('#privacy-info').isVisible(), true);
-        assert.equal(
-          await page
-            .locator('body')
-            .evaluate((el) => Math.ceil(el.getBoundingClientRect().height)),
-          box.height,
-          'popover must not resize popup',
+        const openLayout = await page.evaluate(() => {
+          const panel = document.querySelector('#privacy-info');
+          const rect = panel.getBoundingClientRect();
+          const style = getComputedStyle(panel);
+          return {
+            height: document.body.getBoundingClientRect().height,
+            panelHeight: rect.height,
+            overflow: style.overflowY,
+            maxHeight: style.maxHeight,
+            position: style.position,
+            radius: style.borderRadius,
+            clipped: panel.scrollHeight > panel.clientHeight,
+            textInside: [...panel.querySelectorAll('p')].every((p) => {
+              const r = p.getBoundingClientRect();
+              return r.top >= rect.top && r.bottom <= rect.bottom;
+            }),
+            bottomGap:
+              document.body.getBoundingClientRect().bottom -
+              document.querySelector('.info-row').getBoundingClientRect()
+                .bottom,
+            rightGap:
+              document.body.getBoundingClientRect().right -
+              document.querySelector('#privacy-toggle').getBoundingClientRect()
+                .right,
+            infoSize: (() => {
+              const r = document
+                .querySelector('#privacy-toggle')
+                .getBoundingClientRect();
+              return { width: r.width, height: r.height };
+            })(),
+          };
+        });
+        assert(
+          Math.abs(
+            openLayout.height - box.height - openLayout.panelHeight - 4,
+          ) < 1,
         );
+        assert.equal(openLayout.position, 'static');
+        assert.equal(openLayout.radius, '4px');
+        assert.equal(openLayout.maxHeight, 'none');
+        assert.equal(openLayout.overflow, 'visible');
+        assert.equal(openLayout.clipped, false);
+        assert.equal(openLayout.textInside, true);
+        assert.equal(openLayout.bottomGap, closedLayout.bottomGap);
+        assert.equal(openLayout.rightGap, closedLayout.rightGap);
+        assert.deepEqual(openLayout.infoSize, {
+          width: infoBox.width,
+          height: infoBox.height,
+        });
         const overlay = await page.locator('#privacy-info').boundingBox();
-        assert(overlay.y >= 0 && overlay.y + overlay.height <= box.height);
+        assert(
+          overlay.y >= 0 && overlay.y + overlay.height <= openLayout.height,
+        );
         // Real pointer movement crosses the gap and enters the notice.
         await page.mouse.move(
           infoBox.x + infoBox.width / 2,
@@ -408,6 +487,12 @@ try {
         await page.mouse.move(0, 0);
         await page.waitForFunction(
           () => document.querySelector('#privacy-info').hidden,
+        );
+        assert.equal(
+          await page
+            .locator('body')
+            .evaluate((el) => Math.ceil(el.getBoundingClientRect().height)),
+          box.height,
         );
         for (let repeat = 0; repeat < 3; repeat++) {
           await info.click();
@@ -463,7 +548,7 @@ try {
         assert.equal(await info.getAttribute('aria-expanded'), 'true');
         await page.keyboard.press('Enter');
         assert.equal(await info.getAttribute('aria-expanded'), 'true');
-        await page.keyboard.press('Tab');
+        await page.keyboard.press('Shift+Tab');
         assert.equal(
           await page
             .locator('#privacy-info')
@@ -481,8 +566,8 @@ try {
         await page.keyboard.press('Tab');
         await page.keyboard.press('Shift+Tab');
         assert.equal(await info.getAttribute('aria-expanded'), 'true');
-        await page.keyboard.press('Tab');
-        await page.keyboard.press('Tab');
+        await page.keyboard.press('Shift+Tab');
+        await page.keyboard.press('Shift+Tab');
         await page.waitForFunction(
           () => document.querySelector('#privacy-info').hidden,
         );

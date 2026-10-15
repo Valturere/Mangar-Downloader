@@ -25,17 +25,6 @@
     </main>
     <p id="status" role="status" aria-live="polite"></p>
     <footer id="privacy">
-      <button
-        id="privacy-toggle"
-        class="info-button"
-        type="button"
-        aria-label="Информация о конфиденциальности"
-        aria-expanded="false"
-        aria-controls="privacy-info"
-        aria-describedby="privacy-info"
-      >
-        <span aria-hidden="true">ⓘ</span>
-      </button>
       <div
         id="privacy-info"
         class="privacy-notice"
@@ -48,6 +37,19 @@
           Для выбранного видео могут передаваться необходимые заголовки и
           cookies.
         </p>
+      </div>
+      <div class="info-row">
+        <button
+          id="privacy-toggle"
+          class="info-button"
+          type="button"
+          aria-label="Информация о конфиденциальности"
+          aria-expanded="false"
+          aria-controls="privacy-info"
+          aria-describedby="privacy-info"
+        >
+          <span aria-hidden="true">ⓘ</span>
+        </button>
       </div>
     </footer>
     <script type="module" src="popup.js"></script>

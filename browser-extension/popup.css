@@ -118,7 +118,15 @@ article + article {
   color: var(--muted);
 }
 footer {
-  margin-top: 6px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin-top: 4px;
+}
+.info-row {
+  display: flex;
+  flex: none;
+  justify-content: flex-end;
 }
 #status {
   margin-top: 8px;
@@ -156,19 +164,14 @@ footer {
   color: var(--muted);
 }
 .privacy-notice {
-  position: fixed;
-  left: 12px;
-  width: 296px;
-  z-index: 2;
-  overflow-y: auto;
+  flex: none;
   padding: 6px 8px;
   border: 1px solid var(--muted);
-  border-radius: 8px;
+  border-radius: 4px;
   background: var(--surface);
   color: var(--text);
   font-size: 11px;
   line-height: 1.4;
-  scrollbar-width: thin;
 }
 .privacy-detail {
   margin-top: 4px;
