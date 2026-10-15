@@ -3,28 +3,28 @@ Item ID: paimennadokhgjdpgilfcebameolopbm
 
 1. ПАКЕТ
 Откройте существующий Mangar → Пакет → Загрузить новый пакет (Upload new package).
-Выберите Mangar-Browser-Extension-1.0.1.zip из этой папки.
-Новый item не создавать. В ZIP версия 1.0.1: Chrome требует увеличения версии при замене уже загруженного 1.0.0, даже в черновике. Companion installer и testing instructions описаны в CWS_REVIEWER_INSTRUCTIONS.md.
+Выберите Mangar-Browser-Extension-1.0.2.zip из этой папки.
+Новый item не создавать. В ZIP версия 1.0.2: обновление существующего опубликованного item 1.0.1. Companion installer и testing instructions описаны в CWS_REVIEWER_INSTRUCTIONS.md.
 
 2. ОПИСАНИЕ ПРОДУКТА
 Название: Mangar Downloader
 Короткое описание (из manifest): Передача текущей страницы или медиапотока в локальный Mangar Downloader для скачивания
-Категория: Productivity / Производительность (в актуальном списке может называться «Рабочие процессы»).
+Категория: Tools / Инструменты (текущая публичная категория; сохраняется).
 Язык: русский.
 Подробное описание — вставьте следующий текст:
 
-Mangar Downloader связывает Chrome с локальным Windows-приложением Mangar Downloader. Откройте расширение и нажмите «Скачать в Mangar», чтобы передать текущую страницу для скачивания. Для iframe/HLS/DASH и прямых MP4/WebM можно отдельно выбрать обнаруженный медиапоток. Требуется установленное приложение Mangar Downloader с Native Messaging host.
+Mangar Downloader связывает Chrome с локальным Windows-приложением Mangar Downloader. Откройте расширение и нажмите «Скачать», чтобы передать поддерживаемую страницу или выбранное видео для скачивания. Обнаруженные HLS/DASH и прямые MP4/WebM имеют приоритет; при нескольких потоках можно выбрать нужный вариант. Требуется установленное приложение Mangar Downloader с Native Messaging host.
 
 Передача выполняется только по вашему нажатию. Для выбранного медиапотока приложение может получить адрес, разрешённые заголовки и cookies конкретного запроса. Контекст используется для выбранного скачивания и передаётся локально приложению; серверу разработчика данные не отправляются. Найденные потоки хранятся временно и очищаются по истечении срока, навигации и закрытии вкладки. DRM не поддерживается; доступность зависит от источника и сети.
 
 Расширение и companion приложение являются публичным продуктом. Установка и последующие обновления расширения выполняются через Chrome Web Store.
 
-Изображения из этой папки:
-Store icon: icon-128.png
-Screenshots: popup-light-640x400.png и popup-dark-640x400.png
-Small promotional tile: promo-440x280.png
-Marquee / большой промоматериал (необязателен): promo-1400x560.png
-Скриншоты показывают текущее пустое состояние расширения, без данных о видео.
+Изображения для обновления:
+Store icon: icon-128.png (источник browser-extension/icons/128.png).
+Screenshots: 01-supported-page.png, 02-detected-media.png, 03-privacy-info.png. Все три — настоящие Chrome captures 1.0.2, PNG 640×400. Старые screenshots с большой privacy-секцией заменить всеми тремя новыми файлами.
+Формат: PNG или JPEG, 1280×800 или 640×400, от 1 до 5 изображений. Требования проверены 15 октября 2026 года: https://developer.chrome.com/docs/webstore/images . Предпочтительно три реальных снимка без личных данных и diagnostic UI.
+Существующие small promotional tile и необязательный marquee сохраняются, если они не показывают устаревший интерфейс.
+`node scripts/cws-store-assets.mjs` экспортирует проверенные assets из docs/cws/1.0.2/ в dist/release/1.0.2/store/. После штатной clean-source упаковки `pwsh -File scripts/prepare-cws-desktop.ps1` копирует ZIP, icon, три screenshots и этот текст в отдельную папку «Mangar Downloader - Chrome Web Store 1.0.2» на рабочем столе.
 Сохраните раздел. Google Analytics не настраивать.
 
 3. КОНФИДЕНЦИАЛЬНОСТЬ

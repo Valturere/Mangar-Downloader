@@ -13,16 +13,18 @@ $sourceStatus = git -C $taskRoot status --porcelain=v1
 if ($LASTEXITCODE -ne 0 -or $sourceStatus -or $currentCommit -cne $record.source_commit) { throw 'Нужен ZIP из текущего clean committed source' }
 $desktop = [Environment]::GetFolderPath([Environment+SpecialFolder]::DesktopDirectory)
 if (!$desktop -or !(Test-Path -LiteralPath $desktop -PathType Container)) { throw 'Рабочий стол пользователя не найден' }
-$destination = Join-Path $desktop 'Mangar Downloader - Chrome Web Store'
+$destination = Join-Path $desktop "Mangar Downloader - Chrome Web Store $version"
 $copies = [ordered]@{
     'icon-128.png' = 'icon-128.png'
-    'popup-page-light-640x400.png' = 'popup-light-640x400.png'
-    'popup-page-dark-640x400.png' = 'popup-dark-640x400.png'
-    'promo-440x280.png' = 'promo-440x280.png'
-    'promo-1400x560.png' = 'promo-1400x560.png'
+    '01-supported-page.png' = '01-supported-page.png'
+    '02-detected-media.png' = '02-detected-media.png'
+    '03-privacy-info.png' = '03-privacy-info.png'
 }
 foreach ($asset in $copies.Keys) {
-    if (!(Test-Path -LiteralPath (Join-Path $release "store/$asset") -PathType Leaf)) { throw "Отсутствует $asset" }
+    $exported = Join-Path $release "store/$asset"
+    if (!(Test-Path -LiteralPath $exported -PathType Leaf)) { throw "Отсутствует $asset" }
+    $sourceAsset = if ($asset -eq 'icon-128.png') { Join-Path $taskRoot 'browser-extension/icons/128.png' } else { Join-Path $taskRoot "docs/cws/$version/$asset" }
+    if ((Get-FileHash -LiteralPath $exported).Hash -cne (Get-FileHash -LiteralPath $sourceAsset).Hash) { throw "Store asset не совпадает с reviewed source: $asset" }
 }
 New-Item -ItemType Directory -Force -Path $destination | Out-Null
 foreach ($asset in $copies.Keys) {

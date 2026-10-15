@@ -1,8 +1,8 @@
 # Политика конфиденциальности Mangar Downloader
 
-Редакция: 13 октября 2026 года. Разработчик: Valturere. Контакт: okes209@gmail.com.
+Редакция: 15 октября 2026 года. Разработчик: Valturere. Контакт: okes209@gmail.com.
 
-Mangar Downloader — локальное Windows-приложение для скачивания видео. Расширение Mangar Downloader помогает по явному действию передать текущую страницу или обнаруженный медиапоток в это приложение. Эта политика описывает подготовленный пакет расширения 1.0.1; публикация в Chrome Web Store пока не состоялась.
+Mangar Downloader — локальное Windows-приложение для скачивания видео. Расширение Mangar Downloader помогает по явному действию передать текущую страницу или обнаруженный медиапоток в это приложение. Эта политика описывает локальную обработку данных расширением и companion-приложением.
 
 ## Какие данные используются
 
@@ -28,9 +28,9 @@ MP4 сохраняются в выбранной пользователем па
 
 ## English version
 
-Revision: October 13, 2026. Developer: Valturere. Contact: okes209@gmail.com.
+Revision: October 15, 2026. Developer: Valturere. Contact: okes209@gmail.com.
 
-Mangar Downloader is a local Windows video downloader. Its browser extension lets you explicitly send the current page or an observed media resource to the desktop app. This policy describes the prepared extension 1.0.1; Chrome Web Store publication is pending.
+Mangar Downloader is a local Windows video downloader. Its browser extension lets you explicitly send the current page or an observed media resource to the desktop app. This policy describes local data processing by the extension and its companion app.
 
 The extension reads the active tab URL/title for its popup and passively observes HTTP(S) media requests, including iframe/CDN resources. It temporarily processes resource URLs (including signed query parameters), tab/frame identifiers, request time, media type, selected response metadata, permitted request headers and cookies for the specific request, including scope/partition metadata. Cookies may contain authentication data. It does not read the complete browser history archive, passwords or browser cookie databases directly, and does not inject content scripts. Processed URLs, titles and cookies may still contain personal data.
 
