@@ -372,92 +372,119 @@ try {
             clip: { x: 0, y: 0, width: 320, height: box.height },
           });
         const info = page.locator('#privacy-toggle');
+        const panel = page.locator('#privacy-info');
+        const geometry = () =>
+          page.evaluate(() => {
+            const rect = (selector) => {
+              const r = document
+                .querySelector(selector)
+                .getBoundingClientRect();
+              return { x: r.x, y: r.y, width: r.width, height: r.height };
+            };
+            return {
+              header: rect('header'),
+              logo: rect('header img'),
+              title: rect('h1'),
+              info: rect('#privacy-toggle'),
+              content: rect('main'),
+            };
+          });
+        const header = await geometry();
+        assert.equal(header.header.height, 20);
+        assert.equal(header.header.y, 12);
+        assert.deepEqual(header.logo, { x: 12, y: 12, width: 20, height: 20 });
+        assert.equal(header.title.x, 40);
+        assert.equal(header.info.width, 28);
+        assert.equal(header.info.height, 28);
+        assert.equal(header.info.x + header.info.width, 308);
+        assert.equal(
+          header.info.y + header.info.height / 2,
+          header.header.y + header.header.height / 2,
+        );
+        // The candidates' existing 4px focus gutter extends into main's margin.
+        assert.equal(header.content.y, mediaCount ? 36 : 40);
+        assert.equal(await page.locator('header #privacy-toggle').count(), 1);
+        assert.equal(await page.locator('footer, .info-row').count(), 0);
         assert.equal(
           await info.getAttribute('aria-label'),
           'Информация о конфиденциальности',
         );
+        assert.equal(await info.getAttribute('aria-controls'), 'privacy-info');
         assert.equal((await info.innerText()).trim(), 'ⓘ');
-        const infoBox = await info.boundingBox();
-        assert.equal(infoBox.width, 28);
-        assert.equal(infoBox.height, 28);
-        const closedLayout = await page.evaluate(() => {
-          const body = document.body.getBoundingClientRect();
-          const row = document
-            .querySelector('.info-row')
-            .getBoundingClientRect();
-          const icon = document
-            .querySelector('#privacy-toggle')
-            .getBoundingClientRect();
-          const footer = document
-            .querySelector('#privacy')
-            .getBoundingClientRect();
-          const status = document.querySelector('#status');
-          const content = status.textContent
-            ? status
-            : document.querySelector('main');
-          return {
-            bottomGap: body.bottom - row.bottom,
-            contentGap: footer.top - content.getBoundingClientRect().bottom,
-            rightGap: body.right - icon.right,
-            hiddenHeight: document
-              .querySelector('#privacy-info')
-              .getBoundingClientRect().height,
-            rowHeight: row.height,
-            alignment: getComputedStyle(document.querySelector('.info-row'))
-              .justifyContent,
-            minHeight: getComputedStyle(document.body).minHeight,
-          };
-        });
-        assert.equal(closedLayout.hiddenHeight, 0);
-        assert.equal(closedLayout.minHeight, '0px');
-        assert.equal(closedLayout.alignment, 'flex-end');
-        assert.equal(closedLayout.rightGap, 12);
-        assert.equal(closedLayout.bottomGap, 12);
-        assert.equal(closedLayout.rowHeight, 28);
-        assert(closedLayout.contentGap >= 0 && closedLayout.contentGap <= 8);
         assert.equal(
           await info
             .locator('span')
             .evaluate((el) => getComputedStyle(el).fontSize),
           '12px',
         );
+        const closedLayout = await page.evaluate(() => {
+          const body = document.body.getBoundingClientRect();
+          const status = document.querySelector('#status');
+          const last = status.textContent
+            ? status
+            : document.querySelector('#media').hidden
+              ? document.querySelector('main')
+              : document.querySelector('#candidates');
+          const gutter = last.id === 'candidates' ? 4 : 0;
+          return {
+            bottomGap:
+              body.bottom - last.getBoundingClientRect().bottom + gutter,
+            hiddenHeight: document
+              .querySelector('#privacy-info')
+              .getBoundingClientRect().height,
+            minHeight: getComputedStyle(document.body).minHeight,
+          };
+        });
+        assert.equal(closedLayout.hiddenHeight, 0);
+        assert.equal(closedLayout.minHeight, '0px');
+        assert.equal(closedLayout.bottomGap, 12);
         await info.hover();
-        assert.equal(await page.locator('#privacy-info').isVisible(), true);
-        const openLayout = await page.evaluate(() => {
-          const panel = document.querySelector('#privacy-info');
-          const rect = panel.getBoundingClientRect();
-          const style = getComputedStyle(panel);
+        await page.waitForTimeout(150);
+        assert.equal(
+          await panel.isVisible(),
+          false,
+          'hover must not open privacy',
+        );
+        await info.focus();
+        assert.equal(
+          await panel.isVisible(),
+          false,
+          'focus alone must not open privacy',
+        );
+        assert.equal(await info.getAttribute('aria-expanded'), 'false');
+        await info.click();
+        assert.equal(await panel.isVisible(), true);
+        assert.equal(await info.getAttribute('aria-expanded'), 'true');
+        const openLayout = await panel.evaluate((el) => {
+          const r = el.getBoundingClientRect(),
+            style = getComputedStyle(el);
+          const status = document.querySelector('#status');
+          const previous = status.textContent
+            ? status
+            : document.querySelector('#media').hidden
+              ? document.querySelector('main')
+              : document.querySelector('#candidates');
+          const gutter = previous.id === 'candidates' ? 4 : 0;
           return {
             height: document.body.getBoundingClientRect().height,
-            panelHeight: rect.height,
+            panelHeight: r.height,
             overflow: style.overflowY,
             maxHeight: style.maxHeight,
             position: style.position,
             radius: style.borderRadius,
-            clipped: panel.scrollHeight > panel.clientHeight,
-            textInside: [...panel.querySelectorAll('p')].every((p) => {
-              const r = p.getBoundingClientRect();
-              return r.top >= rect.top && r.bottom <= rect.bottom;
+            clipped: el.scrollHeight > el.clientHeight,
+            textInside: [...el.querySelectorAll('p')].every((p) => {
+              const b = p.getBoundingClientRect();
+              return b.top >= r.top && b.bottom <= r.bottom;
             }),
-            bottomGap:
-              document.body.getBoundingClientRect().bottom -
-              document.querySelector('.info-row').getBoundingClientRect()
-                .bottom,
-            rightGap:
-              document.body.getBoundingClientRect().right -
-              document.querySelector('#privacy-toggle').getBoundingClientRect()
-                .right,
-            infoSize: (() => {
-              const r = document
-                .querySelector('#privacy-toggle')
-                .getBoundingClientRect();
-              return { width: r.width, height: r.height };
-            })(),
+            bottomGap: document.body.getBoundingClientRect().bottom - r.bottom,
+            contentGap:
+              r.top - previous.getBoundingClientRect().bottom + gutter,
           };
         });
         assert(
           Math.abs(
-            openLayout.height - box.height - openLayout.panelHeight - 4,
+            openLayout.height - box.height - openLayout.panelHeight - 8,
           ) < 1,
         );
         assert.equal(openLayout.position, 'static');
@@ -466,62 +493,54 @@ try {
         assert.equal(openLayout.overflow, 'visible');
         assert.equal(openLayout.clipped, false);
         assert.equal(openLayout.textInside, true);
-        assert.equal(openLayout.bottomGap, closedLayout.bottomGap);
-        assert.equal(openLayout.rightGap, closedLayout.rightGap);
-        assert.deepEqual(openLayout.infoSize, {
-          width: infoBox.width,
-          height: infoBox.height,
-        });
-        const overlay = await page.locator('#privacy-info').boundingBox();
-        assert(
-          overlay.y >= 0 && overlay.y + overlay.height <= openLayout.height,
+        assert.equal(openLayout.bottomGap, 12);
+        assert.equal(openLayout.contentGap, 8);
+        assert.deepEqual(
+          await geometry(),
+          header,
+          'header and content must not move on toggle',
         );
-        // Real pointer movement crosses the gap and enters the notice.
-        await page.mouse.move(
-          infoBox.x + infoBox.width / 2,
-          overlay.y + overlay.height / 2,
-          { steps: 8 },
-        );
-        await page.waitForTimeout(150);
-        assert.equal(await page.locator('#privacy-info').isVisible(), true);
+        if (['empty', 'hls'].includes(scenario) && scale === 1) {
+          await page.screenshot({
+            path: path.join(output, `${scenario}-privacy-${theme}.png`),
+            clip: {
+              x: 0,
+              y: 0,
+              width: 320,
+              height: Math.ceil(openLayout.height),
+            },
+          });
+        }
         await page.mouse.move(0, 0);
-        await page.waitForFunction(
-          () => document.querySelector('#privacy-info').hidden,
+        assert.equal(
+          await panel.isVisible(),
+          true,
+          'pointer leaving does not close click disclosure',
         );
+        await panel.click();
+        assert.equal(await panel.isVisible(), true, 'click inside stays open');
+        await info.click();
+        assert.equal(await panel.isVisible(), false);
+        for (let repeat = 0; repeat < 3; repeat++) {
+          await info.click();
+          assert.equal(await panel.isVisible(), true);
+          await info.click();
+          assert.equal(await panel.isVisible(), false);
+        }
+        await info.click();
+        await page.locator('h1').click();
+        assert.equal(await panel.isVisible(), false, 'outside click closes');
         assert.equal(
           await page
             .locator('body')
             .evaluate((el) => Math.ceil(el.getBoundingClientRect().height)),
           box.height,
         );
-        for (let repeat = 0; repeat < 3; repeat++) {
-          await info.click();
-          assert.equal(await page.locator('#privacy-info').isVisible(), true);
-          await page.mouse.move(0, 0);
-          if (repeat === 0) {
-            // Async popup content can resize while the pointer is leaving.
-            // Repositioning must not cancel the pending close.
-            await page.locator('body').evaluate((el) => {
-              el.style.minHeight = `${Math.ceil(el.getBoundingClientRect().height) + 1}px`;
-            });
-          }
-          await page.waitForFunction(
-            () => document.querySelector('#privacy-info').hidden,
-          );
-          if (repeat === 0)
-            await page.locator('body').evaluate((el) => {
-              el.style.minHeight = '';
-            });
-        }
-        await info.hover();
-        await page.keyboard.press('Escape');
-        assert.equal(await page.locator('#privacy-info').isVisible(), false);
+        // Use actual Tab input to enter the first control in the header.
         await page.keyboard.press('Tab');
         const focusableDownloads = await page
           .locator('main button:visible:enabled')
           .count();
-        // Chrome can pass focus through its own window between the last and
-        // first page controls. Keep this bounded, while using real Tab input.
         for (let i = 0; i < focusableDownloads + 4; i++) {
           if (await info.evaluate((el) => document.activeElement === el)) break;
           await page.keyboard.press('Tab');
@@ -529,48 +548,46 @@ try {
         assert.equal(
           await info.evaluate((el) => document.activeElement === el),
           true,
-          `${scenario}: keyboard access to privacy`,
         );
-        assert.equal(await page.locator('#privacy-info').isVisible(), true);
-        if (scenario === 'hls' && scale === 1) {
-          const height = await page
-            .locator('body')
-            .evaluate((el) => Math.ceil(el.getBoundingClientRect().height));
-          await page.screenshot({
-            omitBackground: true,
-            path: path.join(output, `privacy-${theme}.png`),
-            clip: { x: 0, y: 0, width: 320, height },
-          });
-        }
-        await page.keyboard.press('Space');
-        assert.equal(await info.getAttribute('aria-expanded'), 'true');
-        await page.keyboard.press('Space');
-        assert.equal(await info.getAttribute('aria-expanded'), 'true');
-        await page.keyboard.press('Enter');
-        assert.equal(await info.getAttribute('aria-expanded'), 'true');
-        await page.keyboard.press('Shift+Tab');
+        assert.notEqual(
+          await info.evaluate((el) => getComputedStyle(el).outlineStyle),
+          'none',
+        );
         assert.equal(
-          await page
-            .locator('#privacy-info')
-            .evaluate((el) => document.activeElement === el),
-          true,
+          await panel.isVisible(),
+          false,
+          'Tab focus must not open privacy',
         );
+        for (const key of ['Enter', 'Space']) {
+          await page.keyboard.press(key);
+          assert.equal(await info.getAttribute('aria-expanded'), 'true');
+          await page.keyboard.press(key);
+          assert.equal(await info.getAttribute('aria-expanded'), 'false');
+        }
+        await page.keyboard.press('Enter');
         await page.keyboard.press('Escape');
+        assert.equal(await panel.isVisible(), false);
         assert.equal(
           await info.evaluate((el) => document.activeElement === el),
           true,
         );
-        assert.equal(await info.getAttribute('aria-expanded'), 'false');
-        // Focus can leave the notice without Escape, and later reopen it.
-        await page.mouse.move(0, 0);
-        await page.keyboard.press('Tab');
-        await page.keyboard.press('Shift+Tab');
-        assert.equal(await info.getAttribute('aria-expanded'), 'true');
-        await page.keyboard.press('Shift+Tab');
-        await page.keyboard.press('Shift+Tab');
-        await page.waitForFunction(
-          () => document.querySelector('#privacy-info').hidden,
+        await page.keyboard.press('Enter');
+        for (let i = 0; i < focusableDownloads + 2; i++) {
+          await page.keyboard.press('Tab');
+          if (await panel.evaluate((el) => document.activeElement === el))
+            break;
+        }
+        assert.equal(
+          await panel.evaluate((el) => document.activeElement === el),
+          true,
         );
+        await page.keyboard.press('Escape');
+        assert.equal(await panel.isVisible(), false);
+        assert.equal(
+          await info.evaluate((el) => document.activeElement === el),
+          true,
+        );
+        assert.deepEqual(await geometry(), header);
         assert.equal(await page.evaluate(() => window.smokeSends), 0);
         if (await page.locator('main button:visible:enabled').count()) {
           const button = page

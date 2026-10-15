@@ -41,13 +41,18 @@ body {
   color: var(--text);
 }
 header {
+  justify-content: space-between;
+  margin-bottom: 8px;
+}
+header,
+.brand {
   display: flex;
   align-items: center;
   gap: 8px;
-  margin-bottom: 8px;
 }
 h1 {
   margin: 0;
+  white-space: nowrap;
   font-size: 15px;
   font-weight: 650;
 }
@@ -117,17 +122,6 @@ article + article {
   line-height: 1.5;
   color: var(--muted);
 }
-footer {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-  margin-top: 4px;
-}
-.info-row {
-  display: flex;
-  flex: none;
-  justify-content: flex-end;
-}
 #status {
   margin-top: 8px;
   color: var(--muted);
@@ -144,6 +138,9 @@ footer {
   justify-content: center;
   width: 28px;
   min-height: 28px;
+  flex: none;
+  /* Keep the brand's 20px row while retaining a 28px hit area in its padding. */
+  margin-block: -4px;
   padding: 0;
   border-radius: 6px;
   color: var(--muted);
@@ -164,7 +161,7 @@ footer {
   color: var(--muted);
 }
 .privacy-notice {
-  flex: none;
+  margin-top: 8px;
   padding: 6px 8px;
   border: 1px solid var(--muted);
   border-radius: 4px;

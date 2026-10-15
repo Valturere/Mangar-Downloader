@@ -66,47 +66,18 @@ async function load() {
     status.textContent = 'Медиа не найдено';
 }
 
-const privacy = document.querySelector('#privacy');
 const info = document.querySelector('#privacy-info');
 const infoButton = document.querySelector('#privacy-toggle');
-// Pointer focus must not keep the notice open after a click. Keyboard focus
-// remains an independent way to read it, including Tab into the notice.
-let pointerFocus = false;
-let closeTimer;
 function showInfo(visible) {
-  clearTimeout(closeTimer);
   info.hidden = !visible;
   infoButton.setAttribute('aria-expanded', String(visible));
 }
-function hasInfoInteraction() {
-  return (
-    infoButton.matches(':hover') ||
-    info.matches(':hover') ||
-    (!pointerFocus && privacy.contains(document.activeElement))
-  );
-}
-function scheduleClose() {
-  clearTimeout(closeTimer);
-  // Allow movement between the control and the panel, including the control's
-  // movement when opening the panel grows the native popup.
-  closeTimer = setTimeout(() => {
-    if (!hasInfoInteraction()) showInfo(false);
-  }, 100);
-}
-for (const element of [infoButton, info]) {
-  element.addEventListener('mouseenter', () => showInfo(true));
-  element.addEventListener('mouseleave', scheduleClose);
-}
-privacy.addEventListener('focusin', () => {
-  if (!pointerFocus) showInfo(true);
-});
-privacy.addEventListener('focusout', scheduleClose);
-document.addEventListener('pointerdown', (event) => {
-  pointerFocus = true;
-  if (!privacy.contains(event.target)) showInfo(false);
+infoButton.addEventListener('click', () => showInfo(info.hidden));
+document.addEventListener('click', (event) => {
+  if (!infoButton.contains(event.target) && !info.contains(event.target))
+    showInfo(false);
 });
 document.addEventListener('keydown', (event) => {
-  pointerFocus = false;
   if (event.key === 'Escape' && !info.hidden) {
     if (info.contains(document.activeElement)) infoButton.focus();
     showInfo(false);
