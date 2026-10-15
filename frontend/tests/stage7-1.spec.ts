@@ -85,12 +85,12 @@ test('Настройка закрытия подтверждается backend, 
   await page.keyboard.press('Shift+Tab');
   await page.keyboard.press('Tab');
   await expect(checkbox).toBeFocused();
-  await expect(page.locator('.checkbox-box')).toHaveCSS(
+  await expect(checkbox.locator('.checkbox-box')).toHaveCSS(
     'outline-style',
     'solid',
   );
   await page.emulateMedia({ forcedColors: 'active' });
-  await expect(page.locator('.checkbox-box')).toHaveCSS(
+  await expect(checkbox.locator('.checkbox-box')).toHaveCSS(
     'outline-style',
     'solid',
   );
@@ -157,7 +157,7 @@ for (const scale of [1, 1.25, 1.5]) {
       await expect(checkbox).toBeChecked();
       await expect(checkbox).toBeDisabled();
       await expect(page.locator('input[type="checkbox"]')).toHaveCount(0);
-      const bounds = await page.locator('.checkbox-box').boundingBox();
+      const bounds = await checkbox.locator('.checkbox-box').boundingBox();
       expect(bounds?.width).toBe(16);
       expect(bounds?.height).toBe(16);
       const text = await checkbox.locator('span').last().boundingBox();
@@ -167,9 +167,7 @@ for (const scale of [1, 1.25, 1.5]) {
         4,
       );
       expect(
-        await page
-          .locator('.behavior-checkbox')
-          .evaluate((el) => el.getBoundingClientRect().height),
+        await checkbox.evaluate((el) => el.getBoundingClientRect().height),
       ).toBeLessThanOrEqual(32);
       const select = page.getByRole('combobox');
       const control = await select.boundingBox();

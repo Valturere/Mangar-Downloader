@@ -336,6 +336,20 @@ section[aria-labelledby='settings-updates'] .tool-actions {
 .settings-section h2 {
   margin-bottom: var(--spacing);
 }
+.default-directory-row {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing);
+  margin: 4px 0 var(--spacing);
+  min-width: 0;
+}
+.default-directory-row .folder-path {
+  flex: 1;
+  min-width: 0;
+}
+.default-directory-row .button {
+  flex-shrink: 0;
+}
 .behavior-checkbox {
   display: inline-flex;
   align-items: center;

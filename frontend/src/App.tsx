@@ -25,8 +25,13 @@ export default function App() {
   const [page, setPage] = useState<PageName>('download');
   const [url, setURL] = useState('');
   const [folder, setFolder] = useState('');
+  const [folderOverride, setFolderOverride] = useState(false);
+  const currentFolder = folderOverride
+    ? folder
+    : settings.defaultDownloadDirectory || '';
   const [txt, setTXT] = useState('');
   const [message, setMessage] = useState('');
+  const [browserNotice, setBrowserNotice] = useState('');
   const [busy, setBusy] = useState(false);
   const dialogOpen = useRef(false);
   const importTXT = download.importTXT;
@@ -42,17 +47,13 @@ export default function App() {
           if (!live) return;
           if (captures.length) {
             setPage('download');
-            setMessage(
-              captures.some((capture) => capture.mediaType === 'page')
-                ? 'Ссылка получена из браузера. Выберите папку для загрузки.'
-                : 'Видео получено из браузера. Выберите папку для загрузки.',
+            setBrowserNotice(
+              captures.find((capture) => capture.error)?.error ||
+                (captures.some((capture) => capture.mediaType === 'page')
+                  ? 'Ссылка получена из браузера. Выберите папку для загрузки.'
+                  : 'Видео получено из браузера. Выберите папку для загрузки.'),
             );
-          } else
-            setMessage((current) =>
-              /^(Видео|Ссылка) получен[оа] из браузера\./.test(current)
-                ? ''
-                : current,
-            );
+          } else setBrowserNotice('');
         })
         .catch(() => {});
     };
@@ -74,17 +75,17 @@ export default function App() {
         return;
       }
       setMessage('');
-      if (!folder) {
+      if (!currentFolder) {
         setMessage('Выберите папку для загрузки.');
         return;
       }
-      const result = await importTXT(paths[0], folder);
+      const result = await importTXT(paths[0], currentFolder);
       if (result)
         setTXT(
           `${result.filename} · ${result.total} позиций · Добавлено: ${result.queued} · Ошибок: ${result.invalid}`,
         );
     },
-    [folder, importTXT, downloadPending],
+    [currentFolder, importTXT, downloadPending],
   );
 
   async function choose(kind: 'folder' | 'txt') {
@@ -97,6 +98,7 @@ export default function App() {
       if (path) {
         if (kind === 'folder') {
           setFolder(path);
+          setFolderOverride(true);
           await SetBrowserDirectory(path);
         } else {
           dialogOpen.current = false;
@@ -127,13 +129,13 @@ export default function App() {
               desktop={desktop}
               url={url}
               onURLChange={setURL}
-              folder={folder}
+              folder={currentFolder}
               txt={txt}
-              message={message || download.error}
+              message={message || browserNotice || download.error}
               download={download}
               onStart={() => {
                 if (dialogOpen.current) return;
-                void download.start(url, folder).then((started) => {
+                void download.start(url, currentFolder).then((started) => {
                   if (started) setURL('');
                 });
               }}

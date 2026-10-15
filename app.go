@@ -59,6 +59,7 @@ type App struct {
 	browserPages     map[string]string
 	browserOrder     []string
 	browserDirectory string
+	browserError     string
 	browserHandoff   sync.Mutex
 	updateController *updates.Controller
 	updateInstalling bool
@@ -206,6 +207,9 @@ func (a *App) StartDownload(request download.Request) (download.Snapshot, error)
 	}
 	manager := a.downloadManager
 	a.mu.Unlock()
+	if err := settings.PrepareDownloadDirectory(request.Directory); err != nil {
+		return download.Snapshot{}, err
+	}
 	return manager.Start(request)
 }
 
@@ -216,6 +220,9 @@ func (a *App) ImportTXT(path, directory string) (download.BatchResult, error) {
 	a.mu.Unlock()
 	if closing || manager == nil {
 		return download.BatchResult{}, errors.New("Импорт недоступен. Перезапустите приложение")
+	}
+	if err := settings.PrepareDownloadDirectory(directory); err != nil {
+		return download.BatchResult{}, err
 	}
 	return manager.ImportTXT(path, directory)
 }

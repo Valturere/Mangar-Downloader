@@ -16,8 +16,10 @@ import (
 )
 
 type Snapshot struct {
-	CloseToTray       bool   `json:"closeToTray"`
-	BrowserCookieMode string `json:"browserCookieMode"`
+	DefaultDownloadDirectory    string `json:"defaultDownloadDirectory"`
+	AskBrowserDownloadDirectory bool   `json:"askBrowserDownloadDirectory"`
+	CloseToTray                 bool   `json:"closeToTray"`
+	BrowserCookieMode           string `json:"browserCookieMode"`
 }
 type Store struct {
 	mu     sync.Mutex
@@ -26,7 +28,9 @@ type Store struct {
 	fields map[string]json.RawMessage
 }
 
-func Default() Snapshot { return Snapshot{CloseToTray: true, BrowserCookieMode: "auto"} }
+func Default() Snapshot {
+	return Snapshot{CloseToTray: true, BrowserCookieMode: "auto", DefaultDownloadDirectory: DefaultDownloadDirectory()}
+}
 func validCookieMode(mode string) bool {
 	return mode == "auto" || mode == "chrome" || mode == "edge" || mode == "firefox" || mode == "off"
 }
@@ -53,6 +57,18 @@ func Load(dir string) (*Store, error) {
 		return s, bad
 	}
 	state := Default()
+	if value, ok := fields["default_download_directory"]; ok {
+		var path string
+		if json.Unmarshal(value, &path) == nil && ValidDownloadDirectory(path) {
+			state.DefaultDownloadDirectory = filepath.Clean(path)
+		}
+	}
+	if value, ok := fields["ask_browser_download_directory"]; ok {
+		var ask bool
+		if json.Unmarshal(value, &ask) == nil {
+			state.AskBrowserDownloadDirectory = ask
+		}
+	}
 	if value, ok := fields["browser_cookie_mode"]; ok {
 		if json.Unmarshal(value, &state.BrowserCookieMode) != nil || !validCookieMode(state.BrowserCookieMode) {
 			return s, bad
@@ -98,6 +114,8 @@ func (s *Store) saveLocked(state Snapshot) (Snapshot, error) {
 	fields["version"] = json.RawMessage("1")
 	fields["close_to_tray"], _ = json.Marshal(state.CloseToTray)
 	fields["browser_cookie_mode"], _ = json.Marshal(state.BrowserCookieMode)
+	fields["default_download_directory"], _ = json.Marshal(state.DefaultDownloadDirectory)
+	fields["ask_browser_download_directory"], _ = json.Marshal(state.AskBrowserDownloadDirectory)
 	b, err := json.MarshalIndent(fields, "", "  ")
 	if err != nil || len(b)+1 > 65536 || os.MkdirAll(filepath.Dir(s.path), 0700) != nil {
 		return s.state, fail

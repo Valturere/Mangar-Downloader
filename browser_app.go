@@ -3,6 +3,7 @@ package main
 import (
 	"YTDLP-GUI-Mangar/internal/browserbridge"
 	"YTDLP-GUI-Mangar/internal/download"
+	"YTDLP-GUI-Mangar/internal/settings"
 	"context"
 	"crypto/rand"
 	"encoding/hex"
@@ -18,6 +19,7 @@ type BrowserSummary struct {
 	Title     string `json:"title"`
 	Host      string `json:"host"`
 	MediaType string `json:"mediaType"`
+	Error     string `json:"error"`
 }
 
 func (a *App) expireBrowserLocked() {
@@ -40,12 +42,12 @@ func (a *App) BrowserCaptures() []BrowserSummary {
 	for _, id := range a.browserOrder {
 		if page := a.browserPages[id]; page != "" {
 			u, _ := url.Parse(page)
-			out = append(out, BrowserSummary{ID: id, Title: "Страница из браузера", Host: u.Hostname(), MediaType: "page"})
+			out = append(out, BrowserSummary{ID: id, Title: "Страница из браузера", Host: u.Hostname(), MediaType: "page", Error: a.browserError})
 			continue
 		}
 		c := a.browserCaptures[id]
 		u, _ := url.Parse(c.URL)
-		out = append(out, BrowserSummary{ID: id, Title: download.BrowserDisplayTitle(download.Request{URL: c.URL, HTTPContext: &c.HTTP, Browser: &c.Browser}), Host: u.Hostname(), MediaType: c.Browser.MediaType})
+		out = append(out, BrowserSummary{ID: id, Title: download.BrowserDisplayTitle(download.Request{URL: c.URL, HTTPContext: &c.HTTP, Browser: &c.Browser}), Host: u.Hostname(), MediaType: c.Browser.MediaType, Error: a.browserError})
 	}
 	return out
 }
@@ -97,6 +99,14 @@ func (a *App) browserMessage(ctx context.Context, m browserbridge.Message) brows
 	}
 	a.browserOrder = append(a.browserOrder, id)
 	directory := a.browserDirectory
+	// startup loads the store before domReady releases browserReady. Resolve
+	// each incoming request from the authoritative store, never frontend state.
+	if a.settings != nil {
+		snapshot := a.settings.Snapshot()
+		if !snapshot.AskBrowserDownloadDirectory {
+			directory = snapshot.DefaultDownloadDirectory
+		}
+	}
 	if directory == "" {
 		a.showLocked()
 	}
@@ -113,8 +123,12 @@ func (a *App) browserMessage(ctx context.Context, m browserbridge.Message) brows
 	return browserbridge.Success()
 }
 func (a *App) SetBrowserDirectory(directory string) error {
+	defer a.emitBrowserChanged()
 	a.browserHandoff.Lock()
 	defer a.browserHandoff.Unlock()
+	if !settings.ValidDownloadDirectory(directory) {
+		return errors.New("Папка загрузок недоступна. Выберите другую папку")
+	}
 	// This mirrors only the current main-screen selection; no persistence/default change.
 	a.mu.Lock()
 	if a.toolClosing {
@@ -131,6 +145,14 @@ func (a *App) SetBrowserDirectory(directory string) error {
 		}
 	}
 	return nil
+}
+func (a *App) emitBrowserChanged() {
+	a.mu.Lock()
+	ready, ctx := a.toolDOMReady && !a.toolClosing, a.ctx
+	a.mu.Unlock()
+	if ready {
+		runtime.EventsEmit(ctx, "browser:changed")
+	}
 }
 func (a *App) StartBrowserCapture(id, directory string) (download.Snapshot, error) {
 	a.browserHandoff.Lock()
@@ -155,9 +177,14 @@ func (a *App) startBrowserCapture(id, directory string) (download.Snapshot, erro
 	if c != nil {
 		request = download.Request{URL: c.URL, Directory: directory, HTTPContext: &c.HTTP, Browser: &c.Browser}
 	}
-	s, err := manager.Start(request)
+	var s download.Snapshot
+	err := settings.PrepareDownloadDirectory(directory)
+	if err == nil {
+		s, err = manager.Start(request)
+	}
 	if err != nil {
 		a.mu.Lock()
+		a.browserError = err.Error()
 		if !a.toolClosing {
 			if c != nil {
 				a.browserCaptures[id] = c
@@ -174,6 +201,10 @@ func (a *App) startBrowserCapture(id, directory string) (download.Snapshot, erro
 				a.browserOrder = append(a.browserOrder, id)
 			}
 		}
+		a.mu.Unlock()
+	} else {
+		a.mu.Lock()
+		a.browserError = ""
 		a.mu.Unlock()
 	}
 	return s, err

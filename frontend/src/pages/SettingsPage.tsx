@@ -41,6 +41,55 @@ export function SettingsPage({
       <ApplicationUpdates />
       <section
         className="settings-section"
+        aria-labelledby="settings-downloads"
+      >
+        <h2 id="settings-downloads">Загрузки</h2>
+        <span className="field-label" id="default-directory-label">
+          Папка загрузок по умолчанию
+        </span>
+        <div className="default-directory-row">
+          <span
+            className="folder-path"
+            aria-labelledby="default-directory-label"
+            title={settings.defaultDownloadDirectory}
+          >
+            {settings.defaultDownloadDirectory || 'Загрузка настроек…'}
+          </span>
+          <button
+            className="button"
+            disabled={settings.disabled}
+            onClick={() => void settings.chooseDefaultDirectory()}
+          >
+            Изменить
+          </button>
+          <button
+            className="button"
+            disabled={settings.disabled}
+            onClick={() => void settings.resetDefaultDirectory()}
+          >
+            Сбросить
+          </button>
+        </div>
+        <button
+          type="button"
+          role="checkbox"
+          className="behavior-checkbox"
+          aria-checked={settings.askBrowserDownloadDirectory}
+          disabled={settings.disabled}
+          onClick={() =>
+            void settings.setAskBrowserDownloadDirectory(
+              !settings.askBrowserDownloadDirectory,
+            )
+          }
+        >
+          <span className="checkbox-box" aria-hidden="true">
+            {settings.askBrowserDownloadDirectory && <Icon name="check" />}
+          </span>
+          <span>Спрашивать папку при загрузке из расширения</span>
+        </button>
+      </section>
+      <section
+        className="settings-section"
         aria-labelledby="settings-appearance"
       >
         <h2 id="settings-appearance">Внешний вид</h2>
