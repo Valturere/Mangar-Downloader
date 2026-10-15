@@ -1,71 +1,66 @@
 # Mangar Downloader
 
-Mangar Downloader — компактное приложение для Windows 10/11 x64, которое скачивает видео через yt-dlp и сохраняет результат в MP4. Добавляйте ссылки в приложении или передавайте их из браузера через необязательное расширение.
+Компактное приложение для Windows 10/11 x64: скачивает видео через yt-dlp и сохраняет результат в MP4. Ссылки можно добавить вручную, списком из TXT или передать из Chrome.
 
-## Основные возможности
+## Возможности
 
-- Одна ссылка или список из TXT; до трёх загрузок одновременно.
-- Лучшее доступное видео и аудио, итоговый MP4. Совместимые потоки объединяются через FFmpeg без повторного кодирования.
-- TXT сохраняет порядок и имена `1.mp4`, `2.mp4`, …; повторная попытка сохраняет номер.
-- Существующие файлы не перезаписываются, удаление задания не удаляет готовое видео.
-- Работа в трее и управляемые компоненты yt-dlp, FFmpeg/ffprobe и Deno.
+- Лучшее доступное видео и аудио; совместимые потоки объединяются в MP4 без повторного кодирования.
+- Очередь до трёх одновременных загрузок, отмена и повторная попытка.
+- TXT сохраняет порядок и имена `1.mp4`, `2.mp4`, …; готовые файлы не перезаписываются и не удаляются вместе с заданием.
+- Необязательное браузерное расширение и работа в трее.
+- Управление компонентами yt-dlp, FFmpeg/ffprobe и Deno из настроек.
+- Стабильные обновления приложения и сохраняемая папка загрузок по умолчанию.
 
 ## Установка
 
-Скачайте установщик из [выпусков GitHub](https://github.com/Valturere/Mangar-Downloader/releases). Текущая тестовая версия — [1.0.2 RC2](https://github.com/Valturere/Mangar-Downloader/releases/tag/v1.0.2-rc.2), отмечена как предварительный выпуск. В ней исправлен запуск приложения после завершения установщика.
+Скачайте установщик из [последнего стабильного выпуска](https://github.com/Valturere/Mangar-Downloader/releases/latest). Версия приложения — **1.0.3**.
 
-Mangar устанавливается для текущего пользователя в `%LOCALAPPDATA%\Programs\Mangar`; выбор каталога установки сейчас не предусмотрен. Права администратора обычно не нужны. При отсутствии WebView2 установщик добавляет официальный Microsoft runtime. Установщик пока без Authenticode подписи; SHA-256 приложен к выпуску.
+Установка выполняется для текущего пользователя в `%LOCALAPPDATA%\Programs\Mangar`; выбор каталога установки сейчас не предусмотрен. Права администратора обычно не нужны. Компоненты хранятся отдельно в `%LOCALAPPDATA%\YTDLPGUIMangar\tools`. При отсутствии WebView2 установщик добавляет официальный Microsoft runtime.
 
-1. Установить приложение и открыть «Настройки» → компоненты: yt-dlp, FFmpeg/ffprobe и Deno.
-2. На вкладке «Загрузка» выбрать папку, вставить ссылку или импортировать TXT.
-3. Готовый MP4 можно открыть из строки задания. Cancel/Retry/Remove не удаляют уже готовые пользовательские файлы.
+1. Установите Mangar и откройте «Настройки» → «Компоненты», чтобы установить yt-dlp, FFmpeg/ffprobe и Deno.
+2. Вставьте ссылку на вкладке «Загрузка» или импортируйте TXT.
+3. Откройте готовый MP4 из строки задания.
 
-Очередь хранится в памяти и исчезает после полного выхода, сбоя или перезагрузки. Настройки, компоненты и готовые файлы сохраняются. Кнопка X может скрывать окно в трей; «Выйти» завершает приложение. Подробнее: [установка](docs/INSTALLATION.md).
+Установщик пока не подписан цифровой подписью; Windows может показать предупреждение. SHA-256 опубликован рядом с установщиком. Подробнее: [установка](docs/INSTALLATION.md).
 
-## Расширение браузера
+## Расширение Chrome
 
-Расширение [Mangar Downloader в Chrome Web Store](https://chromewebstore.google.com/detail/mangar/paimennadokhgjdpgilfcebameolopbm) опубликовано для всех. Текущая Store-версия — 1.0.1; новые popup и иконки в исходниках готовятся отдельно и ещё не опубликованы.
+[Mangar Downloader в Chrome Web Store](https://chromewebstore.google.com/detail/mangar/paimennadokhgjdpgilfcebameolopbm) опубликовано для всех. Текущая Store-версия — **1.0.1**, ID — `paimennadokhgjdpgilfcebameolopbm`.
 
-Расширение необязательно: приложение принимает ссылки и без него. Расширение передаёт обычную страницу или выбранный обнаруженный медиапоток в установленный локальный Mangar через Native Messaging. Передача выполняется только по нажатию пользователя. Доступность скачивания зависит от источника и сети; DRM не поддерживается. [Политика конфиденциальности](https://valturere.github.io/Mangar-Privacy/).
+Расширение необязательно: Mangar принимает ссылки и без него. По нажатию пользователя расширение передаёт текущую страницу или выбранный обнаруженный медиапоток в локальное приложение через Native Messaging. Если Mangar закрыт, он запускается автоматически. [Политика конфиденциальности](https://valturere.github.io/Mangar-Privacy/).
+
+Новые popup и иконки в исходниках относятся к будущему отдельному обновлению расширения и ещё не опубликованы в Store. Доступность скачивания зависит от источника, прав доступа и сети; DRM не поддерживается.
+
+## Загрузки
+
+«Настройки» → «Загрузки» сохраняют папку по умолчанию. Первоначально используется системная папка «Загрузки» с подпапкой `Mangar`, включая перенаправленную папку Windows.
+
+На главном экране можно временно выбрать другую папку: это не меняет default в настройках. После полного выхода и нового запуска главная снова использует сохранённый default.
+
+«Спрашивать папку при загрузке из расширения» по умолчанию выключено: задания из Chrome получают сохранённую папку. При включении используется выбор папки на главном экране. Если папка недоступна, приложение предлагает выбрать другую, сохраняя ожидающий запрос в памяти.
+
+Очередь хранится только в памяти и исчезает после полного выхода, сбоя или перезагрузки. Настройки, компоненты и готовые файлы сохраняются. Кнопка X по умолчанию скрывает окно в трей; «Выйти» завершает приложение.
 
 ## Обновления
 
-Приложение проверяет обновления анонимно через публичные GitHub Releases раз в 24 часа. Учётная запись GitHub и токен не нужны. Установка начинается только по нажатию «Скачать и установить». Предварительные выпуски RC автоматически не предлагаются; установка более старой версии запрещена. Расширение обновляется отдельно через Chrome Web Store. Подробнее: [обновления](docs/UPDATES.md).
+Mangar проверяет стабильные публичные GitHub Releases раз в 24 часа и по кнопке «Проверить обновления». Учётная запись GitHub и токен не нужны. Установка начинается только после подтверждения пользователя — по нажатию «Скачать и установить». Предварительные выпуски не предлагаются, установка более старой версии запрещена. Расширение обновляется отдельно через Chrome Web Store. Подробнее: [обновления](docs/UPDATES.md).
 
 ## Разработка
 
-Стек: Go, Wails v2, React/TypeScript/Vite. Проверенное окружение: Windows x64, Go 1.26.4 (module minimum 1.25), Wails CLI 2.15.0, Node 24/npm 11, Evergreen WebView2. Go/Node/Git/Wails не нужны пользователям установленного приложения. Детали toolchain: [build/README.md](build/README.md).
+Стек: Go, Wails v2, React/TypeScript/Vite. Проверенное окружение: Windows x64, Go 1.26.4 (module minimum 1.25), Wails CLI 2.15.0, Node 24/npm 11, Evergreen WebView2. Эти инструменты не нужны пользователям установленного приложения. Детали: [build/README.md](build/README.md).
 
 ~~~powershell
-# Baseline; создаёт необходимые frontend assets и Wails bindings
 pwsh -NoProfile -File scripts/verify.ps1
 wails dev
-# App + production Native Messaging host + updater
 pwsh -NoProfile -File scripts/build-production.ps1
-# NSIS installer
-pwsh -NoProfile -File scripts/build-installer.ps1
+pwsh -NoProfile -File scripts/release.ps1
 ~~~
 
-Единственный source версии — `internal/buildinfo/VERSION`; после изменения выполнить `scripts/sync-version.ps1`. Settings/tools/logs/temp — `%LOCALAPPDATA%\YTDLPGUIMangar`, программа — `%LOCALAPPDATA%\Programs\Mangar`. Generated output, local tools, profiles, credentials, logs и скачанные медиа не коммитятся.
-
-## Проверки
-
-[VERIFICATION.md](docs/VERIFICATION.md) описывает baseline, targeted/race/native/network checks, изоляцию и release acceptance.
-
-~~~powershell
-pwsh -NoProfile -File scripts/verify.ps1 -SkipAppBuild
-pwsh -NoProfile -File scripts/verify.ps1 -UI -Race -RealTools -DownloadIntegration
-pwsh -NoProfile -File scripts/verify.ps1 -Full
-pwsh -NoProfile -File scripts/verify-race.ps1 -All
-~~~
-
-Выбирать флаги по изменённой подсистеме. Default не запускает тяжёлые browser/race/native/network checks. Native UI smokes запускать последовательно; automated data — отдельный профиль. Full suite не создаёт Release и не заменяет clean Windows/CWS-installed acceptance.
+Единственный источник версии приложения — `internal/buildinfo/VERSION`; после изменения выполните `scripts/sync-version.ps1`. Стабильные версии выпускаются как `1.0.3`, `1.0.4`, `1.0.5`, а более крупные функциональные обновления — например `1.1.0`. RC/prerelease создаются только по явному решению владельца. Расширение имеет независимую версию.
 
 ## Документация
 
-- [Архитектура](docs/ARCHITECTURE.md) и [решения](docs/DECISIONS.md).
-- [Download engine](docs/DOWNLOAD_ENGINE.md), [UI](docs/UI.md), [безопасность](docs/SECURITY.md), [логи](docs/LOGGING.md).
-- [Сборка расширения](docs/BROWSER_EXTENSION_DEV.md), [Chrome Web Store](docs/CHROME_WEB_STORE_SUBMISSION.md), [reviewer instructions](docs/CWS_REVIEWER_INSTRUCTIONS.md).
-- [Release workflow](docs/RELEASE.md), [CHANGELOG](CHANGELOG.md).
-
-Защищённые источники зависят от прав пользователя, browser context и сети; DRM не поддерживается. Устойчивый provider-specific VK profile не заявляется. Popup пассивный: открытие не запускает probes или скачивание; scoped cookies/context передаются только по явному выбору пользователя.
+- [Проверки](docs/VERIFICATION.md), [выпуск](docs/RELEASE.md), [история изменений](CHANGELOG.md).
+- [Архитектура](docs/ARCHITECTURE.md), [решения](docs/DECISIONS.md), [download engine](docs/DOWNLOAD_ENGINE.md).
+- [UI](docs/UI.md), [безопасность](docs/SECURITY.md), [логи](docs/LOGGING.md).
+- [Разработка расширения](docs/BROWSER_EXTENSION_DEV.md), [Chrome Web Store](docs/CHROME_WEB_STORE_SUBMISSION.md).

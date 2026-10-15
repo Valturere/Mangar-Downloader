@@ -11,7 +11,8 @@ try {
     foreach($name in @('YTDLP-GUI-Mangar.exe','mangar-browser-host.exe','mangar-updater.exe')) { $hashes[$name]=(Get-FileHash -LiteralPath (Join-Path $payload $name)).Hash.ToLowerInvariant() }
     $metadata=[ordered]@{schema=1;product_id='YTDLPGUIMangar';version=$version;architecture='win-x64';source_commit=(git rev-parse HEAD);source_dirty=[bool](git status --porcelain=v1);files=$hashes}
     [IO.File]::WriteAllText((Join-Path $payload 'installation.json'),($metadata|ConvertTo-Json -Depth 8)+"`n",[Text.UTF8Encoding]::new($false))
-    $bootstrapper=Join-Path $taskRoot '.local/WebView2Bootstrapper.exe'
+    $bootstrapper=Join-Path $taskRoot 'build/bin/installer-resources/WebView2Bootstrapper.exe'
+    New-Item -ItemType Directory -Force (Split-Path $bootstrapper) | Out-Null
     if(!(Test-Path -LiteralPath $bootstrapper)) { Invoke-WebRequest -Uri 'https://go.microsoft.com/fwlink/p/?LinkId=2124703' -OutFile $bootstrapper }
     $signature=Get-AuthenticodeSignature -LiteralPath $bootstrapper
     if($signature.Status -ne 'Valid' -or $signature.SignerCertificate.Subject -notmatch 'O=Microsoft Corporation') { throw 'WebView2 bootstrapper must have a valid Microsoft signature' }

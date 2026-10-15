@@ -1,17 +1,36 @@
 # Выпуск Mangar Downloader
 
-PUBLIC source/release repository: `Valturere/Mangar-Downloader`. Private development archive `Valturere/YTDLP-GUI-Mangar` и его история сохраняются. Публичная история начинается с проверенного source snapshot: только нужные исходники, tests, docs и build scripts; без `.local`, старых stage diagnostics, dist binaries, profiles, logs, captures, MP4, credentials, CRX/PEM.
+Публичный репозиторий: `Valturere/Mangar-Downloader`. Единственный источник версии приложения — `internal/buildinfo/VERSION`; `scripts/sync-version.ps1` синхронизирует Wails/Windows metadata. Версия расширения независима.
 
-Версия: `internal/buildinfo/VERSION`. `scripts/sync-version.ps1` синхронизирует Wails metadata. `scripts/build-production.ps1` строит app/store native host/updater и installation.json с hashes; `scripts/build-installer.ps1` создаёт per-user NSIS installer. Technical installer naming contract сохранён: `YTDLP-GUI-Mangar-Setup-X.Y.Z-win-x64.exe`.
+Обычный выпуск — стабильный `X.Y.Z`, tag `vX.Y.Z`, title `Mangar Downloader X.Y.Z`, без prerelease/draft, с Latest. Например: 1.0.3 → 1.0.4 → 1.0.5, для более крупного функционального обновления — 1.1.0. RC/prerelease допустим только по явному решению владельца через `-ReleaseCandidate`; обычные тестовые installer builds остаются локальными.
 
-`scripts/release.ps1` по умолчанию готовит artifacts. `-UpdateTest` разрешает только 0.9.x; `-Publish -GateRecord <file>` требует чистый commit, опубликованный в approved PUBLIC repo, и verification record той же версии/commit/installer hash. После acceptance installer не пересобирается. Assets: installer, `Mangar-update.json`, `SHA256SUMS.txt`, archival extension ZIP. Notes на русском. Бинарники не коммитятся в Git.
+## Подготовка
 
-Следующий stable должен учитывать уже установленную 1.0.2; downgrade запрещён. Версия и отдельный stable pass определяются позднее, включая обновление исторического ограничения первого final release в tooling. Нужны baseline, installer/native launch, tools/real MP4, tray/Exit, uninstall/preservation, clean Windows, real upgrade, CWS-installed native acceptance и integrated final regression для выбранной версии. Fixture не заменяет настоящий anonymous GitHub update или CWS extension. Подготовка RC допустима до закрытия final gates; stable publish запрещён до их закрытия.
+1. Проверить рабочее дерево, историю и origin/main; сохранить и разобрать прежние локальные изменения.
+2. Обновить версию, README, CHANGELOG и релевантные инструкции. Технические identities/installer filename не переименовывать.
+3. Выполнить автоматические проверки и review. Сделать release-preparation commit на русском. Рабочее дерево должно быть clean.
+4. Выполнить `scripts/release.ps1`: production app/host/updater, NSIS installer, manifest, checksums и русские release notes создаются из exact commit. После acceptance ничего не пересобирать. Любое исправление исходников требует нового commit, сборки и acceptance.
 
-`-ReleaseCandidate -RCNumber 2` использует numeric app VERSION X.Y.Z и отдельный prerelease tag `vX.Y.Z-rc.2` без latest: например app 1.0.2 → v1.0.2-rc.2. По умолчанию RCNumber=1; существующие tags/releases не заменяются. Суффикс RC не записывается в Windows/installer/update metadata, поскольку strict parser принимает только три numeric компонента. Equal-version reinstall разрешён installer preflight, более старая версия отклоняется. Для RC2 дополнительно обязательны реальные Finish с checkbox включённым/выключенным, live install guard, equal-version reinstall и CWS page_url/media_capture/auto-launch gates той же сборки. Anonymous updater отклоняет GitHub prerelease независимо от числовой версии. Clean Windows/VM остаётся отдельным stable gate.
+Публичные assets — только:
 
-RC содержит installer, update manifest, SHA256SUMS и отдельный `Mangar-Browser-Extension-<extension-version>-source-<app-version>-rc.<номер>.zip` из committed source для разработки. Он сохраняет исходный public development key; это source archive, не новый CWS upload/package. Пользовательская установка расширения — через Store. Принятый CWS ZIP в прежнем dist directory не перезаписывается. Установленный host принимает только два fixed origins (CWS и repository unpacked); dev helper/registration для installed E2E не используются. После локального dirty-source E2E допускается commit; финальные artifacts затем собираются из clean commit и повторно принимаются до publication. Не переносить acceptance старых bytes на новые.
+- `YTDLP-GUI-Mangar-Setup-X.Y.Z-win-x64.exe`;
+- `Mangar-update.json`;
+- `SHA256SUMS.txt` (hashes installer и manifest).
 
-Installer пока unsigned; поддельный сертификат не используется. Chrome Web Store item: `paimennadokhgjdpgilfcebameolopbm`, PUBLIC. Расширение ставится из Store, archival ZIP не является пользовательским способом установки. Перед Submit for review проверить готовый companion installer и testing instructions.
+GitHub автоматически предоставляет source zip/tar. Extension source ZIP не создаётся и не публикуется вместе со stable. Store package/listing не меняются. Новые source popup/icons не приравниваются к опубликованному Store build.
 
-Перед release выполнить применимые [проверки](VERIFICATION.md) и actual installer acceptance. Full matrix не повторять без изменения или новой причины.
+## Обязательная проверка точных bytes
+
+Для 1.0.3: upgrade установленной 1.0.2 → 1.0.3, equal-version reinstall 1.0.3 → 1.0.3, Finish ON → успешный Exit installer → один GUI без install guard ошибки; runtime/Windows/uninstall/shortcut metadata; сохранение settings (default folder, ask-folder, tray, cookies), managed tools и downloads; production Native Messaging registration.
+
+Automated scope: Go tests/vet, настоящий race для concurrent code и финального release pass, frontend format/typecheck/lint/build/tests, installer/release validation, strict updater manifest и production Wails build. Прежний CWS page_url/media_capture/auto-launch baseline принимается по решению владельца; ручная проверка новой ask-folder фичи — OPEN / NOT VERIFIED. Clean Windows/VM — DEFERRED. Эти исключения не считаются PASS. VK/Jutsu и большие реальные загрузки в этот pass не входят.
+
+Verification record schema 2 содержит exact `version`, `source_commit`, hashes `installer_sha256`, `manifest_sha256`, `sums_sha256`; gates `automated`, `upgrade`, `equal_version_reinstall`, `finish_launch`, `installed_metadata`, `preservation`, `native_registration` должны быть `PASS`. `clean_windows` и `cws_ask_folder` могут иметь `DEFERRED`/`NOT_VERIFIED` только при `owner_approved_deferrals=true` по явному решению владельца. Любой обязательный FAIL запрещает публикацию. Локальный record и evidence не коммитятся.
+
+## Публикация
+
+После всех обязательных PASS: push main, создать и push lightweight tag на exact commit, затем `scripts/release.ps1 -Publish -GateRecord <file>`. Скрипт проверяет clean source, manifest/checksums, record, PUBLIC repo и tag; существующий release не заменяет. Публикация не пересобирает assets и не перегенерирует manifest/checksums/notes. Обычный release создаётся без draft/prerelease с `--latest`; RC требует явного флага и `latest=false`.
+
+После публикации скачать публичные assets обратно и сравнить hashes/bytes; проверить tag commit, `/releases/latest` и неизменность исторического prerelease. Проверить production anonymous updater: latest API, строгий manifest, downloader/SHA/.part, helper path и отсутствие повторного предложения той же версии. Полный UI updater pass отмечать отдельно; не выдавать автоматическую проверку за UI acceptance.
+
+Updater не требует GitHub account/PAT, отвергает prerelease/draft/downgrade и сохраняет safe redirect policy. Installer — per-user NSIS, пока без Authenticode; поддельная подпись не используется. Бинарники, profiles, credentials, captures, logs и локальные инструкции в публичный Git не включаются.
