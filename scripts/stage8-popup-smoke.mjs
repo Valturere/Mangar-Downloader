@@ -6,7 +6,10 @@ import path from 'node:path';
 import assert from 'node:assert/strict';
 import { packageContents } from './extension-package.mjs';
 const root = path.resolve(import.meta.dirname, '..');
-const output = path.join(root, '.local/compatibility-pass/popup');
+const output = path.resolve(
+  process.env.MANGAR_POPUP_EVIDENCE ||
+    path.join(root, '.local/compatibility-pass/popup'),
+);
 fs.mkdirSync(output, { recursive: true });
 const { files } = packageContents(path.join(root, 'browser-extension'));
 const server = createServer((req, res) => {
@@ -313,7 +316,7 @@ try {
           const titleHeight = await page
             .locator('.video-title:visible')
             .evaluate((el) => el.getBoundingClientRect().height);
-          assert(titleHeight <= 42);
+          assert(titleHeight <= 35);
         }
         if (['empty', 'chatgpt', 'unknown'].includes(scenario))
           assert.match(
@@ -343,8 +346,8 @@ try {
           );
         for (const button of await page.locator('main button:visible').all()) {
           const dimensions = await button.boundingBox();
-          assert.equal(dimensions.width, 104);
-          assert(dimensions.height >= 34 && dimensions.height <= 38);
+          assert(dimensions.width >= 70 && dimensions.width < 90);
+          assert(dimensions.height >= 32 && dimensions.height <= 36);
         }
         if (['hls', 'dash'].includes(scenario))
           assert.equal(await page.locator('.media-facts').isVisible(), false);
@@ -369,6 +372,20 @@ try {
             clip: { x: 0, y: 0, width: 320, height: box.height },
           });
         const info = page.locator('#privacy-toggle');
+        assert.equal(
+          await info.getAttribute('aria-label'),
+          'Информация о конфиденциальности',
+        );
+        assert.equal((await info.innerText()).trim(), 'ⓘ');
+        const infoBox = await info.boundingBox();
+        assert.equal(infoBox.width, 28);
+        assert.equal(infoBox.height, 28);
+        assert.equal(
+          await info
+            .locator('span')
+            .evaluate((el) => getComputedStyle(el).fontSize),
+          '12px',
+        );
         await info.hover();
         assert.equal(await page.locator('#privacy-info').isVisible(), true);
         assert.equal(
@@ -380,11 +397,38 @@ try {
         );
         const overlay = await page.locator('#privacy-info').boundingBox();
         assert(overlay.y >= 0 && overlay.y + overlay.height <= box.height);
+        // Real pointer movement crosses the gap and enters the notice.
+        await page.mouse.move(
+          infoBox.x + infoBox.width / 2,
+          overlay.y + overlay.height / 2,
+          { steps: 8 },
+        );
+        await page.waitForTimeout(150);
+        assert.equal(await page.locator('#privacy-info').isVisible(), true);
         await page.mouse.move(0, 0);
-        assert.equal(await page.locator('#privacy-info').isVisible(), false);
-        await info.click();
-        await page.mouse.move(0, 0);
-        assert.equal(await info.getAttribute('aria-expanded'), 'true');
+        await page.waitForFunction(
+          () => document.querySelector('#privacy-info').hidden,
+        );
+        for (let repeat = 0; repeat < 3; repeat++) {
+          await info.click();
+          assert.equal(await page.locator('#privacy-info').isVisible(), true);
+          await page.mouse.move(0, 0);
+          if (repeat === 0) {
+            // Async popup content can resize while the pointer is leaving.
+            // Repositioning must not cancel the pending close.
+            await page.locator('body').evaluate((el) => {
+              el.style.minHeight = `${Math.ceil(el.getBoundingClientRect().height) + 1}px`;
+            });
+          }
+          await page.waitForFunction(
+            () => document.querySelector('#privacy-info').hidden,
+          );
+          if (repeat === 0)
+            await page.locator('body').evaluate((el) => {
+              el.style.minHeight = '';
+            });
+        }
+        await info.hover();
         await page.keyboard.press('Escape');
         assert.equal(await page.locator('#privacy-info').isVisible(), false);
         await page.keyboard.press('Tab');
@@ -416,7 +460,7 @@ try {
         await page.keyboard.press('Space');
         assert.equal(await info.getAttribute('aria-expanded'), 'true');
         await page.keyboard.press('Space');
-        assert.equal(await info.getAttribute('aria-expanded'), 'false');
+        assert.equal(await info.getAttribute('aria-expanded'), 'true');
         await page.keyboard.press('Enter');
         assert.equal(await info.getAttribute('aria-expanded'), 'true');
         await page.keyboard.press('Tab');
@@ -432,6 +476,16 @@ try {
           true,
         );
         assert.equal(await info.getAttribute('aria-expanded'), 'false');
+        // Focus can leave the notice without Escape, and later reopen it.
+        await page.mouse.move(0, 0);
+        await page.keyboard.press('Tab');
+        await page.keyboard.press('Shift+Tab');
+        assert.equal(await info.getAttribute('aria-expanded'), 'true');
+        await page.keyboard.press('Tab');
+        await page.keyboard.press('Tab');
+        await page.waitForFunction(
+          () => document.querySelector('#privacy-info').hidden,
+        );
         assert.equal(await page.evaluate(() => window.smokeSends), 0);
         if (await page.locator('main button:visible:enabled').count()) {
           const button = page

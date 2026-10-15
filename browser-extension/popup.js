@@ -69,47 +69,55 @@ async function load() {
 const privacy = document.querySelector('#privacy');
 const info = document.querySelector('#privacy-info');
 const infoButton = document.querySelector('#privacy-toggle');
-let pinned = false;
+// Pointer focus must not keep the notice open after a click. Keyboard focus
+// remains an independent way to read it, including Tab into the notice.
+let pointerFocus = false;
+let closeTimer;
 function showInfo(visible) {
+  clearTimeout(closeTimer);
   info.hidden = !visible;
   infoButton.setAttribute('aria-expanded', String(visible));
-  if (visible) {
-    // Keep the overlay inside even the smallest native popup, without changing
-    // body height or covering its toggle. Short states allow scrolling details.
-    const toggleTop = infoButton.getBoundingClientRect().top;
-    info.style.maxHeight = `${Math.max(32, toggleTop - 12)}px`;
-    info.style.top = `${Math.max(8, toggleTop - info.getBoundingClientRect().height - 6)}px`;
-  }
+  if (visible) positionInfo();
 }
-infoButton.addEventListener('mouseenter', () => showInfo(true));
-infoButton.addEventListener('focus', () => showInfo(true));
-privacy.addEventListener('mouseleave', () => {
-  if (!pinned && !privacy.contains(document.activeElement)) showInfo(false);
+function positionInfo() {
+  // Keep the overlay inside even the smallest native popup, without changing
+  // body height or covering its toggle. Short states allow scrolling details.
+  const toggleTop = infoButton.getBoundingClientRect().top;
+  info.style.maxHeight = `${Math.max(32, toggleTop - 12)}px`;
+  info.style.top = `${Math.max(8, toggleTop - info.getBoundingClientRect().height - 6)}px`;
+}
+function hasInfoInteraction() {
+  return (
+    infoButton.matches(':hover') ||
+    info.matches(':hover') ||
+    (!pointerFocus && privacy.contains(document.activeElement))
+  );
+}
+function scheduleClose() {
+  clearTimeout(closeTimer);
+  // Bridge the small visual gap between the control and the fixed overlay.
+  closeTimer = setTimeout(() => {
+    if (!hasInfoInteraction()) showInfo(false);
+  }, 100);
+}
+for (const element of [infoButton, info]) {
+  element.addEventListener('mouseenter', () => showInfo(true));
+  element.addEventListener('mouseleave', scheduleClose);
+}
+privacy.addEventListener('focusin', () => {
+  if (!pointerFocus) showInfo(true);
 });
-privacy.addEventListener('focusout', (event) => {
-  if (
-    !pinned &&
-    !privacy.contains(event.relatedTarget) &&
-    !privacy.matches(':hover')
-  )
-    showInfo(false);
-});
+privacy.addEventListener('focusout', scheduleClose);
 document.addEventListener('pointerdown', (event) => {
-  if (!privacy.contains(event.target)) {
-    pinned = false;
-    showInfo(false);
-  }
+  pointerFocus = true;
+  if (!privacy.contains(event.target)) showInfo(false);
 });
 new ResizeObserver(() => {
-  if (!info.hidden) showInfo(true);
+  if (!info.hidden) positionInfo();
 }).observe(document.body);
-infoButton.addEventListener('click', () => {
-  pinned = !pinned;
-  showInfo(pinned);
-});
 document.addEventListener('keydown', (event) => {
+  pointerFocus = false;
   if (event.key === 'Escape' && !info.hidden) {
-    pinned = false;
     if (info.contains(document.activeElement)) infoButton.focus();
     showInfo(false);
     event.preventDefault();

@@ -59,7 +59,7 @@ h1 {
   overflow-wrap: anywhere;
   margin: 0;
   line-height: 1.4;
-  font-size: 15px;
+  font-size: 12.5px;
   font-weight: 600;
 }
 p {
@@ -78,9 +78,9 @@ p {
   margin-top: 8px;
 }
 button {
-  width: 104px;
-  min-height: 36px;
-  padding: 6px 12px;
+  width: fit-content;
+  min-height: 34px;
+  padding: 5px 12px;
   border: 1px solid transparent;
   border-radius: 8px;
   font: inherit;
@@ -133,10 +133,10 @@ footer {
 .info-button {
   display: inline-flex;
   align-items: center;
-  gap: 4px;
-  width: auto;
-  min-height: 22px;
-  padding: 2px 4px;
+  justify-content: center;
+  width: 28px;
+  min-height: 28px;
+  padding: 0;
   border-radius: 6px;
   color: var(--muted);
   background: transparent;
@@ -145,16 +145,15 @@ footer {
   font-weight: 400;
 }
 .info-button > span {
-  font-size: 16px;
+  font-size: 12px;
   line-height: 1;
 }
 .variant-label {
   color: var(--text);
 }
-.info-button:hover:enabled,
-.info-button[aria-expanded='true'] {
-  background: var(--surface);
-  color: var(--text);
+.info-button:hover:enabled {
+  background: transparent;
+  color: var(--muted);
 }
 .privacy-notice {
   position: fixed;
@@ -162,18 +161,18 @@ footer {
   width: 296px;
   z-index: 2;
   overflow-y: auto;
-  padding: 8px;
+  padding: 6px 8px;
   border: 1px solid var(--muted);
   border-radius: 8px;
   background: var(--surface);
   color: var(--text);
-  font-size: 12px;
+  font-size: 11px;
   line-height: 1.4;
   scrollbar-width: thin;
 }
 .privacy-detail {
-  margin-top: 6px;
-  font-size: 11px;
+  margin-top: 4px;
+  font-size: 10.5px;
   color: var(--muted);
 }
 @media (forced-colors: active) {
