@@ -90,6 +90,8 @@ Dependency manager.
 
 Resolver возвращает абсолютные managed paths; `ResolveFFmpegPair` исключает смешение двух версий. Engine вызывает `Acquire(ctx, tool)` для yt-dlp, FFmpeg/ffprobe и Deno и удерживает leases до выхода всех процессов, EOF pipes и cleanup задания. Cleanup tools сохраняет current, previous, leases и пропускает locked executables. Использования PATH или неуправляемых инструментов в engine нет.
 
+Перед удалением каждой obsolete identity GC повторно читает оба pointer manifest; любая ошибка, кроме отсутствия файла, сохраняет каталог. `manager.lock` исключает штатное изменение pointers до завершения удаления, а mutex защищает final lease check и удаление от локального Acquire. Между Manager и процессами leases дополнительно удерживают shared read handles в `tools/.leases/<tool>/<identity>.lock`; GC получает exclusive handle до проверки EXE и сохраняет его до завершения `removeOwned`, затем sidecar удаляется через delete-on-close. Поэтому lease либо защищает всю версию, либо Acquire завершается ошибкой до возврата paths. Handles освобождаются и при crash; каталоги версий остаются immutable. События `gc_delete` и `gc_deleted` сохраняют identity, reason=orphan, current/previous, leased и результат; важные отказы записываются как `gc_skip`, обычные protected identities не создают startup log spam. Эти гарантии относятся к операциям, соблюдающим протокол блокировки Mangar; внешний процесс может менять filesystem независимо от него.
+
 ### `internal/storage/`
 Persistence.
 

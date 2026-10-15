@@ -60,7 +60,11 @@ func (m *Manager) Acquire(ctx context.Context, t Tool) (*Lease, error) {
 	if !ok {
 		return nil, failure("missing", "Рабочий компонент не установлен", "lease unavailable")
 	}
+	var unpin func()
 	lease := &Lease{Paths: map[string]string{}, release: func() {
+		if unpin != nil {
+			unpin()
+		}
 		m.mu.Lock()
 		m.leases[man.Identity]--
 		if m.leases[man.Identity] == 0 {
@@ -68,6 +72,17 @@ func (m *Manager) Acquire(ctx context.Context, t Tool) (*Lease, error) {
 		}
 		m.mu.Unlock()
 	}}
+	dir := m.versionDir(t, man.Identity)
+	if err := directorySafe(m.paths.Tools, dir); err != nil {
+		lease.Close()
+		return nil, err
+	}
+	var err error
+	unpin, err = m.guardVersion(t, man.Identity, false)
+	if err != nil {
+		lease.Close()
+		return nil, err
+	}
 	if err := m.verifyManifest(ctx, man); err != nil {
 		lease.Close()
 		return nil, err

@@ -558,9 +558,12 @@ func (m *Manager) cleanStaging() {
 }
 func (m *Manager) cleanVersions(t Tool) {
 	keep := map[string]bool{}
-	if _, err := readManifest(filepath.Join(m.toolDir(t), "current.json"), t); err != nil && !os.IsNotExist(err) {
+	current, previous, err := m.cleanupPointers(t)
+	if err != nil {
+		m.cleanupAudit(t, "gc_skip", "reason=manifest_read_error")
 		return
 	}
+	keep[current], keep[previous] = true, true
 	m.mu.RLock()
 	for identity, count := range m.leases {
 		if count > 0 {
@@ -568,12 +571,6 @@ func (m *Manager) cleanVersions(t Tool) {
 		}
 	}
 	m.mu.RUnlock()
-	for _, name := range []string{"current.json", "previous.json"} {
-		man, err := readManifest(filepath.Join(m.toolDir(t), name), t)
-		if err == nil {
-			keep[man.Identity] = true
-		}
-	}
 	root := filepath.Join(m.toolDir(t), "versions")
 	if directorySafe(m.paths.Tools, root) != nil {
 		return
@@ -584,15 +581,99 @@ func (m *Manager) cleanVersions(t Tool) {
 		if !e.IsDir() || !identityPattern.MatchString(e.Name()) || keep[e.Name()] {
 			continue
 		}
-		dir := filepath.Join(root, e.Name())
-		if err := versionUnlocked(dir, t); err != nil {
-			m.record(t, "old_version_cleanup", err)
-			continue
+		m.cleanVersion(t, e.Name())
+	}
+}
+
+// Callers hold manager.lock from begin through the entire cleanup. The initial
+// keep-set only avoids work; it never authorizes deletion of a candidate.
+func (m *Manager) cleanupPointers(t Tool) (current, previous string, err error) {
+	for _, pointer := range []struct {
+		name string
+		id   *string
+	}{{"current.json", &current}, {"previous.json", &previous}} {
+		path := filepath.Join(m.toolDir(t), pointer.name)
+		if err = directorySafe(m.paths.Tools, path); err != nil {
+			return
 		}
-		if err := m.removeOwned(dir); err != nil {
-			m.record(t, "old_version_cleanup", err)
+		var man Manifest
+		man, err = readManifest(path, t)
+		if os.IsNotExist(err) {
+			err = nil // Interrupted installs can leave genuine orphans without pointers.
+		} else if err != nil {
+			return
+		} else {
+			*pointer.id = man.Identity
 		}
 	}
+	return
+}
+
+func (m *Manager) cleanupAudit(t Tool, phase, detail string) {
+	if m.log != nil {
+		m.log(t, phase, detail)
+	}
+}
+
+func (m *Manager) guardVersion(t Tool, identity string, deleting bool) (func(), error) {
+	if !identityPattern.MatchString(identity) {
+		return nil, fmt.Errorf("Некорректная identity для блокировки версии")
+	}
+	path := filepath.Join(m.paths.Tools, ".leases", string(t), identity+".lock")
+	if err := directorySafe(m.paths.Tools, path); err != nil {
+		return nil, err
+	}
+	if err := os.MkdirAll(filepath.Dir(path), 0700); err != nil {
+		return nil, err
+	}
+	return versionGuard(path, deleting)
+}
+
+func (m *Manager) cleanVersion(t Tool, identity string) {
+	if !identityPattern.MatchString(identity) {
+		return
+	}
+	dir := m.versionDir(t, identity)
+	if err := directorySafe(m.paths.Tools, dir); err != nil {
+		m.record(t, "old_version_cleanup", err)
+		return
+	}
+	// Exclude leases in ALL Manager instances/processes before touching children.
+	if _, err := os.Stat(dir); err != nil {
+		return
+	}
+	unlock, err := m.guardVersion(t, identity, true)
+	if err != nil {
+		if !os.IsNotExist(err) {
+			m.cleanupAudit(t, "gc_skip", "identity="+identity+" reason=leased_or_unavailable")
+		}
+		return
+	}
+	defer unlock()
+	if err = versionUnlocked(dir, t); err != nil {
+		m.record(t, "old_version_cleanup", err)
+		return
+	}
+	// Acquire increments the local lease count under mu. Keep that exclusion
+	// through removeOwned, including retries, rather than relying on a snapshot.
+	m.mu.RLock()
+	defer m.mu.RUnlock()
+	current, previous, err := m.cleanupPointers(t)
+	if err != nil {
+		m.cleanupAudit(t, "gc_skip", "identity="+identity+" reason=manifest_read_error")
+		return
+	}
+	leased := m.leases[identity] > 0
+	if identity == current || identity == previous || leased {
+		m.cleanupAudit(t, "gc_skip", fmt.Sprintf("identity=%s reason=protected current=%s previous=%s leased=%t", identity, current, previous, leased))
+		return
+	}
+	m.cleanupAudit(t, "gc_delete", fmt.Sprintf("identity=%s reason=orphan current=%s previous=%s leased=%t", identity, current, previous, leased))
+	if err = m.removeOwned(dir); err != nil {
+		m.record(t, "old_version_cleanup", err)
+		return
+	}
+	m.cleanupAudit(t, "gc_deleted", "identity="+identity+" result=deleted")
 }
 
 // Resolve returns one immutable version directory, never a system PATH result.

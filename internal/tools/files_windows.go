@@ -74,6 +74,29 @@ func acquireLock(root string) (func(), error) {
 	return func() { windows.CloseHandle(h) }, nil
 }
 
+// Leases share a read handle; GC holds an exclusive handle through RemoveAll.
+// The sidecar lives outside immutable versions. Delete-on-close removes it
+// atomically on GC completion; crash also releases every kernel lock.
+func versionGuard(path string, deleting bool) (func(), error) {
+	p, err := windows.UTF16PtrFromString(path)
+	if err != nil {
+		return nil, err
+	}
+	access := uint32(windows.GENERIC_READ)
+	share := uint32(windows.FILE_SHARE_READ)
+	flags := uint32(windows.FILE_ATTRIBUTE_NORMAL | windows.FILE_FLAG_OPEN_REPARSE_POINT)
+	if deleting {
+		access |= windows.GENERIC_WRITE | windows.DELETE
+		share = 0
+		flags |= windows.FILE_FLAG_DELETE_ON_CLOSE
+	}
+	h, err := windows.CreateFile(p, access, share, nil, windows.OPEN_ALWAYS, flags, 0)
+	if err != nil {
+		return nil, err
+	}
+	return func() { windows.CloseHandle(h) }, nil
+}
+
 // A running executable cannot be opened exclusively. Probe every executable
 // before cleanup so a locked old FFmpeg does not lose its paired ffprobe.
 func versionUnlocked(dir string, t Tool) error {
