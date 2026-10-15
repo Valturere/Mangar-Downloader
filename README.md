@@ -1,4 +1,16 @@
-# Mangar Downloader
+<p align="center">
+  <img src="build/appicon.png" alt="Логотип Mangar Downloader" width="88" height="88">
+</p>
+
+<h1 align="center">Mangar Downloader</h1>
+
+<p align="center">Windows-приложение для скачивания видео через yt-dlp с браузерным расширением.</p>
+
+<p align="center">
+  <a href="https://github.com/Valturere/Mangar-Downloader/releases/latest"><img src="https://img.shields.io/github/v/release/Valturere/Mangar-Downloader?style=flat&amp;label=Latest%20Release&amp;color=4c6b82&amp;labelColor=263445" alt="Latest Release"></a>
+  <a href="#установка"><img src="https://img.shields.io/badge/Windows-10%2F11%20x64-4c6b82?style=flat&amp;labelColor=263445" alt="Windows 10/11 x64"></a>
+  <a href="https://chromewebstore.google.com/detail/mangar/paimennadokhgjdpgilfcebameolopbm"><img src="https://img.shields.io/badge/Chrome%20Web%20Store-Mangar-4c6b82?style=flat&amp;labelColor=263445" alt="Mangar в Chrome Web Store"></a>
+</p>
 
 Компактное приложение для Windows 10/11 x64: скачивает видео через yt-dlp и сохраняет результат в MP4. Ссылки можно добавить вручную, списком из TXT или передать из Chrome.
 
