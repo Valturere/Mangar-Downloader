@@ -50,7 +50,14 @@ type Lease struct {
 }
 
 func (l *Lease) Close() { l.once.Do(l.release) }
-func (m *Manager) Acquire(ctx context.Context, t Tool) (*Lease, error) {
+func (m *Manager) Acquire(ctx context.Context, t Tool) (_ *Lease, resultErr error) {
+	defer func() {
+		if resultErr != nil {
+			m.autoMu.Lock()
+			m.verifiedBoot = ""
+			m.autoMu.Unlock()
+		}
+	}()
 	m.mu.Lock()
 	man, ok := m.active[t]
 	if ok {
@@ -83,7 +90,9 @@ func (m *Manager) Acquire(ctx context.Context, t Tool) (*Lease, error) {
 		lease.Close()
 		return nil, err
 	}
-	if err := m.verifyManifest(ctx, man); err != nil {
+	// The shared boot preflight owns execution probes. Every lease still checks
+	// runtime integrity and keeps the existing in-process and kernel GC guards.
+	if err := m.verifyFiles(ctx, man); err != nil {
 		lease.Close()
 		return nil, err
 	}

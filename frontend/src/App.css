@@ -4,6 +4,114 @@
   height: 100%;
   min-width: 0;
 }
+.preparation {
+  display: grid;
+  place-items: center;
+  padding: calc(var(--spacing) * 3);
+}
+.preparation-copy {
+  width: 100%;
+  max-width: 380px;
+  text-align: center;
+}
+.preparation-copy h1 {
+  margin-bottom: calc(var(--spacing) * 1.5);
+}
+.preparation-spinner,
+.preparation-error {
+  display: inline-block;
+  width: 32px;
+  height: 32px;
+  margin-bottom: calc(var(--spacing) * 2.5);
+}
+.preparation-spinner {
+  border: 3px solid var(--border);
+  border-top-color: var(--accent);
+  border-radius: 50%;
+  animation: preparation-spin 900ms linear infinite;
+}
+.preparation-error {
+  color: var(--danger);
+  border: 2px solid currentColor;
+  border-radius: 50%;
+  font-size: 20px;
+  font-weight: 600;
+  line-height: 28px;
+}
+.preparation-progress {
+  max-width: 320px;
+  margin: calc(var(--spacing) * 3) auto 0;
+}
+.preparation-progress-caption {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: var(--spacing);
+  color: var(--text-secondary);
+  font-size: 12px;
+}
+.preparation-track {
+  height: 4px;
+  overflow: hidden;
+  border-radius: var(--radius);
+  background: var(--border);
+}
+.preparation-track > span {
+  display: block;
+  height: 100%;
+  background: var(--accent);
+}
+.preparation-track > .indeterminate {
+  width: 40%;
+  animation: preparation-travel 1400ms ease-in-out infinite;
+}
+.preparation-details {
+  margin-top: calc(var(--spacing) * 1.5);
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+  min-height: 36px;
+}
+@keyframes preparation-travel {
+  from {
+    transform: translateX(-100%);
+  }
+  to {
+    transform: translateX(350%);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .preparation-track > .indeterminate {
+    animation: none;
+  }
+}
+@media (forced-colors: active) {
+  .preparation-track {
+    border: 1px solid CanvasText;
+  }
+  .preparation-track > span {
+    background: Highlight;
+  }
+}
+.preparation-actions {
+  display: flex;
+  justify-content: center;
+  flex-wrap: wrap;
+  gap: var(--spacing);
+  margin-top: calc(var(--spacing) * 3);
+}
+.preparation-actions .primary {
+  background: var(--accent);
+  color: var(--on-accent);
+}
+@keyframes preparation-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .preparation-spinner {
+    animation-duration: 2400ms;
+  }
+}
 .titlebar {
   --wails-draggable: drag;
   display: flex;

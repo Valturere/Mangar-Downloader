@@ -31,6 +31,7 @@ type App struct {
 	directoryDialog  func(context.Context, runtime.OpenDialogOptions) (string, error)
 	fileDialog       func(context.Context, runtime.OpenDialogOptions) (string, error)
 	toolManager      *tools.Manager
+	newToolManager   func(tools.Options) *tools.Manager
 	toolContext      context.Context
 	toolCancel       context.CancelFunc
 	toolWG           sync.WaitGroup
@@ -139,7 +140,11 @@ func (a *App) startup(ctx context.Context) {
 	if err != nil {
 		tools.ToolLogger(paths.Logs)(tools.Tool("app"), "settings", err.Error())
 	}
-	a.toolManager = tools.New(tools.Options{Paths: paths, Log: tools.ToolLogger(paths.Logs), OnChange: func(s tools.Snapshot) {
+	newManager := a.newToolManager
+	if newManager == nil {
+		newManager = tools.New
+	}
+	a.toolManager = newManager(tools.Options{Paths: paths, Context: a.toolContext, Log: tools.ToolLogger(paths.Logs), OnChange: func(s tools.Snapshot) {
 		a.mu.Lock()
 		ready := a.toolDOMReady && !a.toolClosing
 		a.mu.Unlock()
@@ -171,7 +176,7 @@ func (a *App) startup(ctx context.Context) {
 	a.toolPending = true
 	go func() {
 		defer a.toolWG.Done()
-		err := a.toolManager.Detect(a.toolContext)
+		err := a.toolManager.Prepare(a.toolContext)
 		a.mu.Lock()
 		a.toolPending = false
 		if err != nil {
@@ -282,6 +287,15 @@ func (a *App) ToolsSnapshot() tools.Snapshot {
 		return tools.Snapshot{Tools: []tools.Status{}, Error: a.toolError}
 	}
 	s := a.toolManager.Snapshot()
+	if a.toolPending && s.Preparation == "" {
+		unknown := true
+		for _, tool := range s.Tools {
+			unknown = unknown && tool.State == "unknown"
+		}
+		if unknown {
+			s.Preparation = "checking"
+		}
+	}
 	s.Error = a.toolError
 	return s
 }
@@ -296,7 +310,7 @@ func (a *App) ComponentsAction(action string) error {
 	if a.toolManager.Snapshot().Busy {
 		return errors.New("Операция с компонентами уже выполняется")
 	}
-	if action != "install" && action != "check" {
+	if action != "install" && action != "check" && action != "prepare" {
 		return errors.New("Неизвестное действие с компонентами")
 	}
 	// Adapter gate covers the interval before the manager goroutine enters begin.
@@ -309,7 +323,9 @@ func (a *App) ComponentsAction(action string) error {
 	go func() {
 		defer a.toolWG.Done()
 		var err error
-		if action == "check" {
+		if action == "prepare" {
+			err = a.toolManager.RetryPreparation(a.toolContext)
+		} else if action == "check" {
 			err = a.toolManager.CheckUpdates(a.toolContext)
 		} else {
 			err = a.toolManager.InstallNeeded(a.toolContext)

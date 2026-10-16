@@ -22,9 +22,10 @@ const MaxActive = 3
 const metricTTL = 3 * time.Second
 
 type Options struct {
-	Paths apppaths.Paths
-	Tools ToolProvider
-	Run   Runner
+	Preflight func(context.Context) error
+	Paths     apppaths.Paths
+	Tools     ToolProvider
+	Run       Runner
 	// OnChange runs outside the manager lock and may be concurrent. Consumers
 	// must be thread-safe and use Revision to reject out-of-order snapshots.
 	OnChange      func(Snapshot)
@@ -40,24 +41,26 @@ type queuedJob struct {
 	committed bool
 }
 type Manager struct {
-	mu            sync.Mutex
-	paths         apppaths.Paths
-	run           Runner
-	acquire       func(context.Context, tools.Tool) (map[string]string, func(), error)
-	callback      func(Snapshot)
-	now           func() time.Time
-	jobs          []*queuedJob
-	pending       []*queuedJob
-	active        int
-	sequence      uint64
-	revision      uint64
-	ctx           context.Context
-	cancel        context.CancelFunc
-	closing       bool
-	updatePaused  bool
-	wg            sync.WaitGroup
-	cookieMode    func() string
-	detectBrowser func() string
+	preflight      func(context.Context) error
+	retryPreflight func()
+	mu             sync.Mutex
+	paths          apppaths.Paths
+	run            Runner
+	acquire        func(context.Context, tools.Tool) (map[string]string, func(), error)
+	callback       func(Snapshot)
+	now            func() time.Time
+	jobs           []*queuedJob
+	pending        []*queuedJob
+	active         int
+	sequence       uint64
+	revision       uint64
+	ctx            context.Context
+	cancel         context.CancelFunc
+	closing        bool
+	updatePaused   bool
+	wg             sync.WaitGroup
+	cookieMode     func() string
+	detectBrowser  func() string
 }
 type execution struct {
 	manager *Manager
@@ -83,6 +86,15 @@ func New(o Options) *Manager {
 		now = time.Now
 	}
 	m := &Manager{paths: o.Paths, run: run, callback: o.OnChange, now: now, ctx: ctx, cancel: cancel}
+	m.preflight = o.Preflight
+	if m.preflight == nil {
+		if ready, ok := o.Tools.(interface{ Preflight(context.Context) error }); ok {
+			m.preflight = ready.Preflight
+		}
+	}
+	if ready, ok := o.Tools.(interface{ ResetPreflightFailure() }); ok {
+		m.retryPreflight = ready.ResetPreflightFailure
+	}
 	m.cookieMode = o.CookieMode
 	m.detectBrowser = o.DetectBrowser
 	if m.detectBrowser == nil {
@@ -281,6 +293,9 @@ func (m *Manager) Retry(id string) (Snapshot, error) {
 			m.mu.Unlock()
 			return Snapshot{}, err
 		}
+	}
+	if m.retryPreflight != nil {
+		m.retryPreflight()
 	}
 	j.view.ExecutionID = executionID
 	j.view.Attempt++
@@ -576,25 +591,51 @@ func (e *execution) execute(r Request, id string) {
 	log.sourceURL = r.URL
 	log.write("preparing", "app", "request", r.URL, nil)
 	log.write("preparing", "app", "http_context", fmt.Sprintf("http_profile=%s headers=%s", r.httpProfile, strings.Join(r.HTTPContext.headerNames(), ",")), nil)
-	paths := map[string]string{}
-	for _, t := range []tools.Tool{tools.YtDlp, tools.FFmpeg, tools.Deno} {
-		var acquired map[string]string
-		var release func()
-		acquired, release, jobErr = e.manager.acquire(e.ctx, t)
+	if e.manager.preflight != nil {
+		e.phase("preparing", "Проверка…")
+		jobErr = e.manager.preflight(e.ctx)
 		if jobErr != nil {
-			message = "Компоненты не готовы. Установите их в Настройках."
+			message = "Не удалось подготовить Mangar. Проверьте подключение к интернету и нажмите «Повторить»."
 			return
 		}
-		releases = append(releases, release)
-		for exe, p := range acquired {
-			paths[exe] = p
-			log.write("lease", string(t), "path", p, nil)
+	}
+	paths := map[string]string{}
+	for attempt := 0; attempt < 2; attempt++ {
+		for _, t := range []tools.Tool{tools.YtDlp, tools.FFmpeg, tools.Deno} {
+			var acquired map[string]string
+			var release func()
+			acquired, release, jobErr = e.manager.acquire(e.ctx, t)
+			if jobErr != nil {
+				message = "Не удалось подготовить компоненты. Попробуйте повторить загрузку."
+				break
+			}
+			releases = append(releases, release)
+			for exe, p := range acquired {
+				paths[exe] = p
+				log.write("lease", string(t), "path", p, nil)
+			}
+		}
+		if jobErr == nil {
+			break
+		}
+		if attempt != 0 || e.manager.preflight == nil {
+			return
+		}
+		for _, release := range releases {
+			release()
+		}
+		releases = nil
+		clear(paths)
+		// A runtime may disappear after this boot was verified. Acquire invalidates
+		// the tools cache; re-enter the SAME shared repair gate, retaining the job.
+		if jobErr = e.manager.preflight(e.ctx); jobErr != nil {
+			return
 		}
 	}
 	for _, exe := range []string{"yt-dlp.exe", "ffmpeg.exe", "ffprobe.exe", "deno.exe"} {
 		if !filepath.IsAbs(paths[exe]) {
 			jobErr = errors.New("Некорректный managed lease")
-			message = "Компоненты не готовы. Установите их в Настройках."
+			message = "Не удалось подготовить компоненты. Попробуйте повторить загрузку."
 			return
 		}
 	}

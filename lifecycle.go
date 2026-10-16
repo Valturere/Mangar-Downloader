@@ -192,6 +192,11 @@ func (a *App) shutdown(ctx context.Context) {
 			case <-deadline.Done():
 				a.logShutdown("Не удалось завершить операцию с компонентами за 15 секунд")
 			}
+			if a.toolManager != nil {
+				if err := a.toolManager.WaitAutomatic(deadline); err != nil {
+					a.logShutdown("Не удалось завершить подготовку компонентов за 15 секунд")
+				}
+			}
 			if tray != nil {
 				if err := tray.Stop(); err != nil {
 					a.logShutdown(err.Error())

@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"errors"
 	"testing"
 	"time"
 
@@ -55,18 +56,28 @@ func TestToolsStartupBeforeDOMKeepsLocalSnapshot(t *testing.T) {
 	a := NewApp()
 	// No Wails frontend in this context: startup must retain DTOs without
 	// attempting JavaScript events before DOM/runtime initialization.
+	a.newToolManager = func(o tools.Options) *tools.Manager {
+		o.Source = offlineTools{}
+		return tools.New(o)
+	}
 	a.startup(context.Background())
 	a.toolWG.Wait()
 	snapshot := a.ToolsSnapshot()
-	if snapshot.Busy || len(snapshot.Tools) != 3 || snapshot.Error != "" {
+	if snapshot.Busy || len(snapshot.Tools) != 3 || snapshot.Error == "" || snapshot.Preparation != "failed" {
 		t.Fatalf("startup snapshot: %+v", snapshot)
 	}
 	for _, tool := range snapshot.Tools {
-		if tool.State != "not_installed" {
+		if tool.State != "not_installed" && tool.State != "failed" {
 			t.Fatalf("unexpected startup state: %+v", tool)
 		}
 	}
 	a.shutdown(context.Background())
+}
+
+type offlineTools struct{}
+
+func (offlineTools) Latest(context.Context, tools.Tool) (tools.Candidate, error) {
+	return tools.Candidate{}, errors.New("offline fixture")
 }
 
 func TestToolsStartupAfterShutdownDoesNotStartWork(t *testing.T) {

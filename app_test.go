@@ -1,6 +1,7 @@
 package main
 
 import (
+	"YTDLP-GUI-Mangar/internal/tools"
 	"context"
 	"errors"
 	"strings"
@@ -8,6 +9,11 @@ import (
 
 	"github.com/wailsapp/wails/v2/pkg/runtime"
 )
+
+func offlineToolManager(o tools.Options) *tools.Manager {
+	o.Source = offlineTools{}
+	return tools.New(o)
+}
 
 func TestLogsFolderUnavailableBeforeStartupOrDuringExit(t *testing.T) {
 	for _, app := range []*App{{}, {ctx: context.Background(), toolClosing: true}, {ctx: context.Background(), exitPending: true}} {
@@ -29,6 +35,7 @@ func TestChoosePathSelectionCancelAndFailure(t *testing.T) {
 		t.Run(result.name, func(t *testing.T) {
 			t.Setenv("LOCALAPPDATA", t.TempDir())
 			a := NewApp()
+			a.newToolManager = offlineToolManager
 			a.startup(context.Background())
 			t.Cleanup(func() { a.shutdown(context.Background()) })
 			a.directoryDialog = func(_ context.Context, options runtime.OpenDialogOptions) (string, error) {
@@ -56,6 +63,7 @@ func TestChoosePathSelectionCancelAndFailure(t *testing.T) {
 func TestDialogExcludesConcurrentSelection(t *testing.T) {
 	t.Setenv("LOCALAPPDATA", t.TempDir())
 	a := NewApp()
+	a.newToolManager = offlineToolManager
 	a.startup(context.Background())
 	t.Cleanup(func() { a.shutdown(context.Background()) })
 	started, release, done := make(chan struct{}), make(chan struct{}), make(chan error, 1)
@@ -80,6 +88,7 @@ func TestChooseTXTOnlySelectsTXT(t *testing.T) {
 	t.Setenv("LOCALAPPDATA", t.TempDir())
 	for _, path := range []string{"", `D:\Списки & тест\файл.TXT`, `D:\video.exe`} {
 		a := NewApp()
+		a.newToolManager = offlineToolManager
 		a.startup(context.Background())
 		t.Cleanup(func() { a.shutdown(context.Background()) })
 		a.fileDialog = func(_ context.Context, options runtime.OpenDialogOptions) (string, error) {

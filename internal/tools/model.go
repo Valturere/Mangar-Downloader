@@ -39,10 +39,12 @@ type Status struct {
 	Total           int64  `json:"total"`
 }
 type Snapshot struct {
-	Busy     bool     `json:"busy"`
-	Revision uint64   `json:"revision"`
-	Tools    []Status `json:"tools"`
-	Error    string   `json:"error"`
+	Progress    *PreparationProgress `json:"progress"`
+	Preparation string               `json:"preparation"`
+	Busy        bool                 `json:"busy"`
+	Revision    uint64               `json:"revision"`
+	Tools       []Status             `json:"tools"`
+	Error       string               `json:"error"`
 }
 type Asset struct {
 	ID     int64  `json:"id"`

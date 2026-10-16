@@ -11,10 +11,11 @@ import { TitleBar } from './components/TitleBar';
 import { Sidebar, type PageName } from './components/Sidebar';
 import { DownloadPage } from './pages/DownloadPage';
 import { SettingsPage } from './pages/SettingsPage';
-import { useTools } from './tools';
+import { useTools, usePreparationScreen } from './tools';
 import { useTheme } from './theme';
 import { useDownload } from './download';
 import { useSettings } from './settings';
+import { Preparation } from './components/Preparation';
 
 export default function App() {
   const desktop = 'runtime' in window;
@@ -23,6 +24,8 @@ export default function App() {
   const download = useDownload(desktop);
   const settings = useSettings(desktop);
   const [page, setPage] = useState<PageName>('download');
+  const preparation = desktop ? tools.state.preparation || '' : '';
+  const showPreparation = usePreparationScreen(preparation);
   const [url, setURL] = useState('');
   const [folder, setFolder] = useState('');
   const [folderOverride, setFolderOverride] = useState(false);
@@ -69,7 +72,7 @@ export default function App() {
 
   const selectTXT = useCallback(
     async (paths: string[]) => {
-      if (dialogOpen.current || downloadPending) return;
+      if (dialogOpen.current || downloadPending || preparation) return;
       if (paths.length !== 1 || !/\.txt$/i.test(paths[0])) {
         setMessage('Выберите один файл с расширением .txt');
         return;
@@ -85,7 +88,7 @@ export default function App() {
           `${result.filename} · ${result.total} позиций · Добавлено: ${result.queued} · Ошибок: ${result.invalid}`,
         );
     },
-    [currentFolder, importTXT, downloadPending],
+    [currentFolder, importTXT, downloadPending, preparation],
   );
 
   async function choose(kind: 'folder' | 'txt') {
@@ -122,32 +125,44 @@ export default function App() {
     <div className="app-shell">
       <TitleBar desktop={desktop} />
       <div className="workspace">
-        <Sidebar page={page} onNavigate={setPage} />
-        <main id="page-content" key={page}>
-          {page === 'download' ? (
-            <DownloadPage
-              desktop={desktop}
-              url={url}
-              onURLChange={setURL}
-              folder={currentFolder}
-              txt={txt}
-              message={message || browserNotice || download.error}
-              download={download}
-              onStart={() => {
-                if (dialogOpen.current) return;
-                void download.start(url, currentFolder).then((started) => {
-                  if (started) setURL('');
-                });
-              }}
-              busy={busy}
-              onChooseFolder={() => void choose('folder')}
-              onChooseTXT={() => void choose('txt')}
-              onDropTXT={selectTXT}
-            />
-          ) : (
-            <SettingsPage tools={tools} theme={theme} settings={settings} />
-          )}
-        </main>
+        {showPreparation && page !== 'settings' ? (
+          <Preparation
+            failed={preparation === 'failed'}
+            state={preparation}
+            progress={tools.state.progress}
+            onRetry={() => void tools.prepare()}
+            onSettings={() => setPage('settings')}
+          />
+        ) : (
+          <>
+            <Sidebar page={page} onNavigate={setPage} />
+            <main id="page-content" key={page}>
+              {page === 'download' ? (
+                <DownloadPage
+                  desktop={desktop}
+                  url={url}
+                  onURLChange={setURL}
+                  folder={currentFolder}
+                  txt={txt}
+                  message={message || browserNotice || download.error}
+                  download={download}
+                  onStart={() => {
+                    if (dialogOpen.current || preparation) return;
+                    void download.start(url, currentFolder).then((started) => {
+                      if (started) setURL('');
+                    });
+                  }}
+                  busy={busy || !!preparation}
+                  onChooseFolder={() => void choose('folder')}
+                  onChooseTXT={() => void choose('txt')}
+                  onDropTXT={selectTXT}
+                />
+              ) : (
+                <SettingsPage tools={tools} theme={theme} settings={settings} />
+              )}
+            </main>
+          </>
+        )}
       </div>
     </div>
   );

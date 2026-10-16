@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { ComponentsAction, ToolsSnapshot } from '../wailsjs/go/main/App';
 import { EventsOn } from '../wailsjs/runtime/runtime';
+import type { PreparationProgress } from './preparation';
 
 export type ToolStatus = {
   auxiliaryRepair?: boolean;
@@ -12,12 +13,15 @@ export type ToolStatus = {
   total: number;
 };
 export type ToolsState = {
+  preparation?: string;
+  progress?: PreparationProgress | null;
   busy: boolean;
   revision: number;
   tools: ToolStatus[];
   error?: string;
 };
 const initial: ToolsState = {
+  preparation: 'checking',
   busy: false,
   revision: 0,
   tools: ['yt-dlp', 'ffmpeg', 'deno'].map((tool) => ({
@@ -108,7 +112,21 @@ export function useTools(desktop: boolean) {
       setPending(false);
     }
   }
+  async function prepare() {
+    if (!desktop || gate.current || state.busy) return;
+    gate.current = true;
+    setError('');
+    setState((old) => ({ ...old, preparation: 'checking', progress: null }));
+    try {
+      await ComponentsAction('prepare');
+    } catch {
+      setState((old) => ({ ...old, preparation: 'failed' }));
+    } finally {
+      gate.current = false;
+    }
+  }
   return {
+    prepare,
     state,
     label,
     error,
@@ -128,4 +146,21 @@ export function toolMessage(tool: ToolStatus) {
   if (tool.state === 'update_available')
     return `Доступно обновление · ${tool.version}`;
   return tool.message;
+}
+
+export function usePreparationScreen(state: string) {
+  const [delayed, setDelayed] = useState(false);
+  useEffect(() => {
+    const timer = window.setTimeout(
+      () => setDelayed(state === 'checking'),
+      650,
+    );
+    return () => window.clearTimeout(timer);
+  }, [state]);
+  return (
+    state === 'preparing' ||
+    state === 'finishing' ||
+    state === 'failed' ||
+    (state === 'checking' && delayed)
+  );
 }

@@ -23,7 +23,17 @@ Cross-regression должна иметь конкретную причину: ba
 
 `scripts/verify.ps1` флаги: `-UI`, `-Race`, `-RealTools` (real process cancellation), `-DownloadIntegration` (managed local media/batch), `-OfficialTools` (official upstream install), `-DesktopSmoke` (window/tray/WebView2). `-Full` включает все. `scripts/verify-race.ps1 -Packages ... -Count N` проверяет выбранные packages; `-All` — весь модуль. MSYS2/GCC нужны только разработчикам; [toolchain](../build/README.md).
 
-## Изоляция
+## Desktop 1.0.4: preparation / boot preflight
+
+Targeted automated checks: `internal/tools/readiness_test.go`, `preparation_progress_test.go`, прежние GC/leases/manager/verifier tests; `internal/download/preflight_test.go`; frontend `preparation*.spec.ts` и существующие tools/download/TXT/browser-folder scenarios. Проверяются healthy/offline path, marker/restart/new boot, missing/broken manifest/binary, runnable probe failures/timeout, clean/partial preparation, Retry/failure wave, singleflight и shutdown. Старые real version-helper tests проверяют отсутствие оставшегося executable/process после timeout.
+
+Controlled real acceptance: `MANGAR_DOWNLOAD_INTEGRATION=1 go test ./internal/download . -run 'TestManaged(BootPreflightControlled|BrowserSharedPreparation)' -count=1 -v`. Реальные managed EXE копируются read-only в отдельный root; media обслуживается localhost. Repair fixture пакует настоящий Deno из изолированной копии и передаёт его через тот же streaming installer. Tripwire запрещает лишние component source calls. Проверяются реальные MP4, restart same boot, новый synthetic boot, удаление Deno после уже успешного cached preflight, продолжение исходного job, TXT и три page_url/media_capture handoff без ожидания repair в protocol reply. Это controlled regression backend/Native Messaging adapter, а не новая проверка установленной Store-копии.
+
+Progress tests: known/unknown/invalid total, percentage ≤100, bytes/speed formatting, EMA/достаточность ETA, скрытие stale metrics, Retry reset, phase lifecycle, единственная progress bar, light/dark, delayed reveal и отсутствие секретов в DTO. Fixtures для screenshots с точными значениями (48/75 МБ, 18 сек) проверяют реальный React render; они не являются замером скорости интернета. Native first-run acceptance отдельно запускает production EXE с чистым LOCALAPPDATA и PATH без SDK, контролируемым offline → online proxy, реальной кнопкой Retry и установкой официальных компонентов.
+
+Результаты и screenshots хранятся только в локальном evidence. Перед commit: `go vet ./...`, unit suite, relevant packages с настоящим `-race`, frontend format/typecheck/lint/build, targeted browser tests, production app/host/helper и локальный NSIS build. Full release/production upgrade/VM/VK/Jutsu/CWS в эту acceptance не входят; 1.0.4 не опубликована.
+
+## Изоляция fixtures
 
 Unit tests используют `t.TempDir()`. Real media fixtures read-only копируют current tools или `MANGAR_TOOL_FIXTURE_ROOT`; Detect/cleanup работают на копии. Native smokes используют dedicated `.local`/LOCALAPPDATA, без developer SDK в app PATH. Production profile допустим только для явно обозначенного non-destructive installed/update test: зафиксировать settings/manifests/identities/runtime hashes и готовые MP4 до/после. Не удалять/заменять рабочие tools/data ради smoke. `verify.ps1` проверяет production fingerprint даже при ошибке.
 

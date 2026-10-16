@@ -17,29 +17,38 @@ import (
 )
 
 type Manager struct {
-	paths     apppaths.Paths
-	source    Source
-	http      *HTTP
-	verifier  Verifier
-	mu        sync.RWMutex
-	operation sync.Mutex
-	busy      bool
-	revision  uint64
-	statuses  map[Tool]Status
-	active    map[Tool]Manifest
-	leases    map[string]int
-	callback  func(Snapshot)
-	log       func(Tool, string, string)
-	replace   func(string, string) error
-	rename    func(string, string) error
+	autoMu       sync.Mutex
+	autoFlight   *readinessFlight
+	verifiedBoot string
+	context      context.Context
+	bootIdentity func() (string, error)
+	preparation  string
+	progress     preparationTracker
+	paths        apppaths.Paths
+	source       Source
+	http         *HTTP
+	verifier     Verifier
+	mu           sync.RWMutex
+	operation    sync.Mutex
+	busy         bool
+	revision     uint64
+	statuses     map[Tool]Status
+	active       map[Tool]Manifest
+	leases       map[string]int
+	callback     func(Snapshot)
+	log          func(Tool, string, string)
+	replace      func(string, string) error
+	rename       func(string, string) error
 }
 type Options struct {
-	Paths    apppaths.Paths
-	Source   Source
-	HTTP     *HTTP
-	Verifier Verifier
-	OnChange func(Snapshot)
-	Log      func(Tool, string, string)
+	Context      context.Context
+	BootIdentity func() (string, error)
+	Paths        apppaths.Paths
+	Source       Source
+	HTTP         *HTTP
+	Verifier     Verifier
+	OnChange     func(Snapshot)
+	Log          func(Tool, string, string)
 }
 
 func New(o Options) *Manager {
@@ -56,6 +65,14 @@ func New(o Options) *Manager {
 		v = ProcessVerifier{}
 	}
 	m := &Manager{paths: o.Paths, source: s, http: h, verifier: v, statuses: map[Tool]Status{}, active: map[Tool]Manifest{}, leases: map[string]int{}, callback: o.OnChange, log: o.Log, replace: replaceFile, rename: os.Rename}
+	m.context = o.Context
+	if m.context == nil {
+		m.context = context.Background()
+	}
+	m.bootIdentity = o.BootIdentity
+	if m.bootIdentity == nil {
+		m.bootIdentity = windowsBootIdentity
+	}
 	for _, t := range toolOrder {
 		m.statuses[t] = Status{Tool: t, State: "unknown", Message: "Не проверялся"}
 	}
@@ -64,7 +81,11 @@ func New(o Options) *Manager {
 func (m *Manager) Snapshot() Snapshot {
 	m.mu.RLock()
 	defer m.mu.RUnlock()
-	s := Snapshot{Busy: m.busy, Revision: m.revision, Tools: make([]Status, 0, 3)}
+	s := Snapshot{Busy: m.busy, Revision: m.revision, Preparation: m.preparation, Tools: make([]Status, 0, 3)}
+	if m.preparation != "" {
+		progress := m.progress.view
+		s.Progress = &progress
+	}
 	for _, t := range toolOrder {
 		s.Tools = append(s.Tools, m.statuses[t])
 	}
@@ -77,17 +98,36 @@ func (m *Manager) emit() {
 }
 func (m *Manager) set(s Status) {
 	m.mu.Lock()
+	if m.preparation == "preparing" {
+		m.progress.update(s, time.Now())
+	}
 	m.statuses[s.Tool] = s
 	m.revision++
 	m.mu.Unlock()
 	m.emit()
 }
 func (m *Manager) begin() (func(), error) {
+	return m.beginContext(context.Background(), false)
+}
+func (m *Manager) beginContext(ctx context.Context, wait bool) (func(), error) {
 	if !filepath.IsAbs(m.paths.Tools) {
 		return nil, failure("path", "Не удалось определить абсолютный путь компонентов", "relative tools root")
 	}
-	if !m.operation.TryLock() {
-		return nil, failure("busy", "Операция с компонентами уже выполняется", "concurrent request")
+	for !m.operation.TryLock() {
+		if !wait {
+			return nil, failure("busy", "Операция с компонентами уже выполняется", "concurrent request")
+		}
+		timer := time.NewTimer(25 * time.Millisecond)
+		select {
+		case <-ctx.Done():
+			timer.Stop()
+			return nil, ctx.Err()
+		case <-timer.C:
+		}
+	}
+	if err := ctx.Err(); err != nil {
+		m.operation.Unlock()
+		return nil, err
 	}
 	if err := directorySafe(m.paths.Tools, m.paths.Tools); err != nil {
 		m.operation.Unlock()
@@ -193,6 +233,10 @@ func (m *Manager) detectTool(ctx context.Context, t Tool) {
 	m.installed(manifest)
 }
 func (m *Manager) installed(man Manifest) {
+	m.autoMu.Lock()
+	m.verifiedBoot = ""
+	m.resetFailureLocked()
+	m.autoMu.Unlock()
 	version := man.Versions[executables(man.Tool)[0]]
 	auxiliary := m.auxiliaryDamaged(man)
 	m.set(Status{Tool: man.Tool, State: "installed", Version: version, Message: "Установлен", AuxiliaryRepair: auxiliary})
@@ -201,11 +245,21 @@ func (m *Manager) installed(man Manifest) {
 	}
 }
 func (m *Manager) verifyManifest(ctx context.Context, man Manifest) error {
+	if err := m.verifyFiles(ctx, man); err != nil {
+		return err
+	}
+	return m.verifyVersion(ctx, man)
+}
+
+func (m *Manager) verifyFiles(ctx context.Context, man Manifest) error {
 	dir := m.versionDir(man.Tool, man.Identity)
 	if err := directorySafe(m.paths.Tools, dir); err != nil {
 		return err
 	}
 	for name, sum := range man.Files {
+		if err := ctx.Err(); err != nil {
+			return err
+		}
 		if auxiliaryFile(name) {
 			continue
 		}
@@ -221,7 +275,10 @@ func (m *Manager) verifyManifest(ctx context.Context, man Manifest) error {
 			return failure("integrity", "Установка компонента повреждена", "local SHA-256 mismatch")
 		}
 	}
-	versions, err := m.verifier.Verify(ctx, man.Tool, dir)
+	return nil
+}
+func (m *Manager) verifyVersion(ctx context.Context, man Manifest) error {
+	versions, err := m.verifier.Verify(ctx, man.Tool, m.versionDir(man.Tool, man.Identity))
 	if err != nil {
 		return err
 	}
@@ -257,7 +314,7 @@ func (m *Manager) auxiliaryDamaged(man Manifest) bool {
 	return false
 }
 
-// CheckUpdates is always explicit; startup only calls Detect.
+// CheckUpdates is explicit; healthy startup/preflight never queries latest versions.
 func (m *Manager) CheckUpdates(ctx context.Context) error {
 	end, err := m.begin()
 	if err != nil {
@@ -287,6 +344,7 @@ func (m *Manager) CheckUpdates(ctx context.Context) error {
 			m.installed(old)
 		}
 	}
+	m.manualRecoveryComplete()
 	return nil
 }
 
@@ -297,6 +355,24 @@ func (m *Manager) InstallNeeded(ctx context.Context) error {
 		return err
 	}
 	defer end()
+	err = m.installNeeded(ctx, false)
+	if err == nil {
+		m.manualRecoveryComplete()
+	}
+	return err
+}
+
+func (m *Manager) manualRecoveryComplete() {
+	m.mu.RLock()
+	healthy := len(m.active) == len(toolOrder)
+	failed := m.preparation == "failed"
+	m.mu.RUnlock()
+	if healthy && failed {
+		m.ResetPreflightFailure()
+		m.preparationState("")
+	}
+}
+func (m *Manager) installNeeded(ctx context.Context, runtimeOnly bool) error {
 	m.cleanStaging()
 	for _, t := range toolOrder {
 		if ctx.Err() != nil {
@@ -318,7 +394,7 @@ func (m *Manager) InstallNeeded(ctx context.Context) error {
 				ok = false
 			}
 		}
-		if ok && s.State == "installed" && !m.auxiliaryDamaged(old) {
+		if ok && s.State == "installed" && (runtimeOnly || !m.auxiliaryDamaged(old)) {
 			continue
 		}
 		m.set(Status{Tool: t, State: "checking", Version: s.Version, Message: "Получение выпуска…"})
