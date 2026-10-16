@@ -21,7 +21,7 @@ GitHub автоматически предоставляет source zip/tar. Ext
 
 ## Обязательная проверка точных bytes
 
-Для 1.0.3: upgrade установленной 1.0.2 → 1.0.3, equal-version reinstall 1.0.3 → 1.0.3, Finish ON → успешный Exit installer → один GUI без install guard ошибки; runtime/Windows/uninstall/shortcut metadata; сохранение settings (default folder, ask-folder, tray, cookies), managed tools и downloads; production Native Messaging registration.
+Для 1.0.4: upgrade установленной 1.0.3 → 1.0.4, equal-version reinstall 1.0.4 → 1.0.4, Finish ON → успешный Exit installer → один GUI без install guard ошибки; runtime/Windows/uninstall/shortcut metadata; сохранение settings (default folder, ask-folder, tray, cookies), managed tools и downloads; production Native Messaging registration. Дополнительно — automatic preparation/preflight/Retry, controlled MP4 с video+audio и same-boot skip после повторной загрузки и Exit/start. Расширение Chrome Web Store остаётся 1.0.2; его обновление не требуется.
 
 Automated scope: Go tests/vet, настоящий race для concurrent code и финального release pass, frontend format/typecheck/lint/build/tests, installer/release validation, strict updater manifest и production Wails build. Прежний CWS page_url/media_capture/auto-launch baseline принимается по решению владельца; ручная проверка новой ask-folder фичи — OPEN / NOT VERIFIED. Clean Windows/VM — DEFERRED. Эти исключения не считаются PASS. VK/Jutsu и большие реальные загрузки в этот pass не входят.
 

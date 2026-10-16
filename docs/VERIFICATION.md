@@ -31,7 +31,7 @@ Controlled real acceptance: `MANGAR_DOWNLOAD_INTEGRATION=1 go test ./internal/do
 
 Progress tests: known/unknown/invalid total, percentage ≤100, bytes/speed formatting, EMA/достаточность ETA, скрытие stale metrics, Retry reset, phase lifecycle, единственная progress bar, light/dark, delayed reveal и отсутствие секретов в DTO. Fixtures для screenshots с точными значениями (48/75 МБ, 18 сек) проверяют реальный React render; они не являются замером скорости интернета. Native first-run acceptance отдельно запускает production EXE с чистым LOCALAPPDATA и PATH без SDK, контролируемым offline → online proxy, реальной кнопкой Retry и установкой официальных компонентов.
 
-Результаты и screenshots хранятся только в локальном evidence. Перед commit: `go vet ./...`, unit suite, relevant packages с настоящим `-race`, frontend format/typecheck/lint/build, targeted browser tests, production app/host/helper и локальный NSIS build. Full release/production upgrade/VM/VK/Jutsu/CWS в эту acceptance не входят; 1.0.4 не опубликована.
+Результаты и screenshots хранятся только в локальном evidence. Перед commit: `go vet ./...`, unit suite, relevant packages с настоящим `-race`, frontend format/typecheck/lint/build, targeted browser tests, production app/host/helper и локальный NSIS build. Локальная feature acceptance проверяется отдельно от release acceptance точных установочных artifacts, описанной ниже. VK/Jutsu в этот pass не входят.
 
 ## Изоляция fixtures
 
